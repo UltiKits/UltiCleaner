@@ -1,0 +1,6 @@
+{
+  "identifyString": "ulticleaner",
+  "name": "UltiCleaner",
+  "shortDescription": "高性能服务器清理插件，支持自动清理掉落物和实体、智能阈值触发、TPS自适应和分批处理。",
+  "categoryId": 1
+}
