@@ -220,9 +220,11 @@ public class ChunkUnloadService {
                 task.cancel();
                 
                 if (unloadedCount.get() > 0 && config.isShowCleanProgress()) {
+                    String msg = org.bukkit.ChatColor.translateAlternateColorCodes('&',
+                            plugin.i18n("chunk_unloaded").replace("{COUNT}", String.valueOf(unloadedCount.get())));
                     Bukkit.getOnlinePlayers().stream()
                         .filter(Player::isOp)
-                        .forEach(op -> op.sendMessage("§a[清理] §f已卸载 §e" + unloadedCount.get() + " §f个区块"));
+                        .forEach(op -> op.sendMessage(msg));
                 }
             }
         }, 0L, 1L);
