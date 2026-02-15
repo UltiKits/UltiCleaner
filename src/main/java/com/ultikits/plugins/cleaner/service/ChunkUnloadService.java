@@ -17,7 +17,10 @@ import org.bukkit.plugin.Plugin;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -243,9 +246,16 @@ public class ChunkUnloadService {
                 future.complete(success);
             });
             
-            // Apply timeout
-            return future.orTimeout(timeoutSeconds, TimeUnit.SECONDS)
-                .exceptionally(ex -> {
+            // Apply timeout (Java 8 compatible - no orTimeout)
+            ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+            scheduler.schedule(() -> {
+                if (!future.isDone()) {
+                    future.completeExceptionally(new TimeoutException("Chunk unload timed out"));
+                }
+                scheduler.shutdown();
+            }, timeoutSeconds, TimeUnit.SECONDS);
+
+            return future.exceptionally(ex -> {
                     plugin.getLogger().warn(
                         "Chunk unload timeout at " + chunk.getX() + ", " + chunk.getZ()
                     );
