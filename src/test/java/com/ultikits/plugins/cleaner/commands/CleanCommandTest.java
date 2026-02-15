@@ -305,4 +305,50 @@ class CleanCommandTest {
             verify(sender, atLeast(6)).sendMessage(anyString());
         }
     }
+
+    // ==================== status with null tpsScheduler ====================
+
+    @Nested
+    @DisplayName("Status without TPS Scheduler")
+    class StatusWithoutTpsScheduler {
+
+        @Test
+        @DisplayName("Should display status without TPS info when scheduler is null")
+        void displayStatusNoTps() {
+            when(cleanerService.getItemCountdown()).thenReturn(300);
+            when(cleanerService.getEntityCountdown()).thenReturn(600);
+            when(cleanerService.isCleaningInProgress()).thenReturn(false);
+            when(cleanerService.getTpsScheduler()).thenReturn(null);
+
+            command.status(sender);
+
+            // Should display at least: header + item countdown + entity countdown + clean status
+            verify(sender, atLeast(3)).sendMessage(anyString());
+        }
+    }
+
+    // ==================== check with null tpsScheduler ====================
+
+    @Nested
+    @DisplayName("Check without TPS Scheduler")
+    class CheckWithoutTpsScheduler {
+
+        @Test
+        @DisplayName("Should display check without TPS when scheduler is null")
+        void checkNoTps() {
+            Map<String, Integer> counts = new HashMap<>();
+            counts.put("items", 50);
+            counts.put("mobs", 25);
+            counts.put("total", 100);
+
+            when(cleanerService.getEntityCounts()).thenReturn(counts);
+            when(cleanerService.getTpsScheduler()).thenReturn(null);
+
+            CleanCommand cmdWithoutChunks = new CleanCommand(cleanerService, null);
+            cmdWithoutChunks.check(sender);
+
+            // Should display header + items + mobs + total
+            verify(sender, atLeast(4)).sendMessage(anyString());
+        }
+    }
 }

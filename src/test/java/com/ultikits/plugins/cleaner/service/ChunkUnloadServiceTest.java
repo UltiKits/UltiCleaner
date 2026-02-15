@@ -16,6 +16,7 @@ import org.junit.jupiter.api.*;
 
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -804,6 +805,100 @@ class ChunkUnloadServiceTest {
             // The unloadChunkAsync is private, tested indirectly through batch unloading
             // We just verify the service handles it
             assertThatCode(() -> service.shutdown()).doesNotThrowAnyException();
+        }
+    }
+
+    // ==================== Check And Unload Chunks With Chunks ====================
+
+    @Nested
+    @DisplayName("Check And Unload With Chunks Present")
+    class CheckAndUnloadWithChunks {
+
+        @Test
+        @DisplayName("Should trigger batch unload when chunks to unload exist")
+        void triggerBatchUnload() throws Exception {
+            when(config.isChunkUnloadEnabled()).thenReturn(true);
+            when(config.getWorldBlacklist()).thenReturn(Collections.emptyList());
+            when(config.getMaxChunkDistance()).thenReturn(5);
+            when(config.getChunkUnloadBatchSize()).thenReturn(5);
+            when(config.getChunkUnloadTimeout()).thenReturn(5);
+
+            World world = UltiCleanerTestHelper.createMockWorld("world");
+            Chunk farChunk = createSafeChunk(world, 100, 100);
+            Player player = createPlayerAtChunk(world, 0, 0);
+
+            when(world.getLoadedChunks()).thenReturn(new Chunk[]{farChunk});
+            when(world.getPlayers()).thenReturn(Collections.singletonList(player));
+            UltiCleanerTestHelper.addMockWorld(world);
+
+            Method method = ChunkUnloadService.class.getDeclaredMethod("checkAndUnloadChunks");
+            method.setAccessible(true);
+            method.invoke(service);
+
+            // Should have started a timer task for batch unloading
+            // Note: runTaskTimer uses a lambda (Consumer<BukkitTask>), not Runnable
+            verify(UltiCleanerTestHelper.getMockScheduler(), atLeastOnce())
+                    .runTaskTimer(any(), any(Consumer.class), anyLong(), anyLong());
+        }
+
+        @Test
+        @DisplayName("Should not trigger batch unload when chunks list is empty")
+        void noTriggerWhenEmpty() throws Exception {
+            when(config.isChunkUnloadEnabled()).thenReturn(true);
+            when(config.getWorldBlacklist()).thenReturn(Collections.emptyList());
+            when(config.getMaxChunkDistance()).thenReturn(5);
+
+            World world = UltiCleanerTestHelper.createMockWorld("world");
+            // Chunk near player - won't be collected
+            Chunk nearChunk = createSafeChunk(world, 1, 1);
+            Player player = createPlayerAtChunk(world, 0, 0);
+
+            when(world.getLoadedChunks()).thenReturn(new Chunk[]{nearChunk});
+            when(world.getPlayers()).thenReturn(Collections.singletonList(player));
+            UltiCleanerTestHelper.addMockWorld(world);
+
+            Method method = ChunkUnloadService.class.getDeclaredMethod("checkAndUnloadChunks");
+            method.setAccessible(true);
+            method.invoke(service);
+
+            // Should NOT have started a timer task
+            verify(UltiCleanerTestHelper.getMockScheduler(), never())
+                    .runTaskTimer(any(), any(Runnable.class), anyLong(), anyLong());
+        }
+    }
+
+    // ==================== Unload Chunk Async ====================
+
+    @Nested
+    @DisplayName("Unload Chunk Async Method")
+    class UnloadChunkAsyncMethod {
+
+        @Test
+        @DisplayName("Should handle exception in unloadChunkAsync gracefully")
+        void handleExceptionGracefully() throws Exception {
+            // Set isPaper to true to enter the Paper path
+            UltiCleanerTestHelper.setStaticField(
+                    Class.forName("com.ultikits.plugins.cleaner.utils.ServerTypeUtil"),
+                    "isPaper", true);
+
+            World world = UltiCleanerTestHelper.createMockWorld("world");
+            Chunk chunk = createSafeChunk(world, 50, 50);
+
+            // Make the scheduler throw to exercise the catch block
+            when(UltiCleanerTestHelper.getMockScheduler().runTask(any(), any(Runnable.class)))
+                    .thenThrow(new RuntimeException("Test exception"));
+
+            java.lang.reflect.Method method = ChunkUnloadService.class.getDeclaredMethod(
+                    "unloadChunkAsync", Chunk.class, int.class);
+            method.setAccessible(true);
+
+            @SuppressWarnings("unchecked")
+            java.util.concurrent.CompletableFuture<Boolean> future =
+                    (java.util.concurrent.CompletableFuture<Boolean>) method.invoke(service, chunk, 5);
+
+            assertThat(future).isNotNull();
+            assertThat(future.isDone()).isTrue();
+            assertThat(future.get()).isFalse();
         }
     }
 

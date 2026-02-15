@@ -1732,5 +1732,212 @@ class CleanerServiceTest {
 
             assertThat(callbackCount[0]).isEqualTo(0);
         }
+
+        @Test
+        @DisplayName("Should set cleaning in progress when batch starts")
+        void setsCleaningInProgress() throws Exception {
+            initServiceWithEmptyConfig();
+
+            List<UUID> uuids = Arrays.asList(UUID.randomUUID());
+
+            Method method = CleanerService.class.getDeclaredMethod("removeEntitiesInBatches",
+                    List.class, int.class, java.util.function.Consumer.class);
+            method.setAccessible(true);
+
+            java.util.function.Consumer<Integer> callback = count -> {};
+
+            method.invoke(service, uuids, 50, callback);
+
+            // isCleaningInProgress should be true until the timer task completes
+            assertThat(service.isCleaningInProgress()).isTrue();
+        }
+    }
+
+    // ==================== Tick Item Clean - Disabled ====================
+
+    @Nested
+    @DisplayName("Tick Item Clean - Disabled")
+    class TickItemCleanDisabled {
+
+        @Test
+        @DisplayName("Should skip tick when item clean is disabled")
+        void skipWhenDisabled() throws Exception {
+            when(config.isItemCleanEnabled()).thenReturn(false);
+            when(config.getItemCleanInterval()).thenReturn(100);
+            initServiceWithEmptyConfig();
+
+            // Set countdown to a known value
+            UltiCleanerTestHelper.setField(service, "itemCountdown", 50);
+
+            Method tickMethod = CleanerService.class.getDeclaredMethod("tickItemClean");
+            tickMethod.setAccessible(true);
+            tickMethod.invoke(service);
+
+            // Countdown should NOT be decremented
+            assertThat(service.getItemCountdown()).isEqualTo(50);
+        }
+    }
+
+    // ==================== Tick Entity Clean - Disabled ====================
+
+    @Nested
+    @DisplayName("Tick Entity Clean - Disabled")
+    class TickEntityCleanDisabled {
+
+        @Test
+        @DisplayName("Should skip tick when entity clean is disabled")
+        void skipWhenDisabled() throws Exception {
+            when(config.isEntityCleanEnabled()).thenReturn(false);
+            when(config.getEntityCleanInterval()).thenReturn(200);
+            initServiceWithEmptyConfig();
+
+            UltiCleanerTestHelper.setField(service, "entityCountdown", 100);
+
+            Method tickMethod = CleanerService.class.getDeclaredMethod("tickEntityClean");
+            tickMethod.setAccessible(true);
+            tickMethod.invoke(service);
+
+            // Countdown should NOT be decremented
+            assertThat(service.getEntityCountdown()).isEqualTo(100);
+        }
+    }
+
+    // ==================== Entity Counts Across Multiple Worlds ====================
+
+    @Nested
+    @DisplayName("Entity Counts Across Multiple Worlds")
+    class EntityCountsMultipleWorlds {
+
+        @Test
+        @DisplayName("Should count entities across multiple worlds")
+        void countAcrossWorlds() {
+            World world1 = UltiCleanerTestHelper.createMockWorld("world");
+            World world2 = UltiCleanerTestHelper.createMockWorld("world_nether");
+            Item item1 = createMockItem(world1, "STONE", false, 1000);
+            LivingEntity zombie = createMockLivingEntity(world2, EntityType.ZOMBIE, null, false);
+            Item item2 = createMockItem(world2, "DIRT", false, 1000);
+
+            when(world1.getEntities()).thenReturn(Arrays.asList(item1));
+            when(world2.getEntities()).thenReturn(Arrays.asList(zombie, item2));
+            UltiCleanerTestHelper.addMockWorld(world1);
+            UltiCleanerTestHelper.addMockWorld(world2);
+
+            initServiceWithConfig(Collections.emptyList(), Arrays.asList("ZOMBIE"), Collections.emptyList());
+
+            Map<String, Integer> counts = service.getEntityCounts();
+
+            assertThat(counts.get("items")).isEqualTo(2);
+            assertThat(counts.get("mobs")).isEqualTo(1);
+            assertThat(counts.get("total")).isEqualTo(3);
+        }
+    }
+
+    // ==================== Smart Clean - Both Thresholds Exceeded ====================
+
+    @Nested
+    @DisplayName("Smart Clean - Both Thresholds")
+    class SmartCleanBothThresholds {
+
+        @Test
+        @DisplayName("Should trigger item clean when both thresholds exceeded")
+        void smartCleanBothThresholds() throws Exception {
+            when(config.isSmartCleanEnabled()).thenReturn(true);
+            when(config.getSmartCleanCooldown()).thenReturn(0);
+            when(config.getItemMaxThreshold()).thenReturn(1);
+            when(config.getMobMaxThreshold()).thenReturn(1);
+
+            World world = UltiCleanerTestHelper.createMockWorld("world");
+            List<Entity> entities = new ArrayList<>();
+            // 5 items (exceeds threshold of 1)
+            for (int i = 0; i < 5; i++) {
+                entities.add(createMockItem(world, "STONE", false, 1000));
+            }
+            // 5 zombies (exceeds threshold of 1)
+            for (int i = 0; i < 5; i++) {
+                entities.add(createMockLivingEntity(world, EntityType.ZOMBIE, null, false));
+            }
+            when(world.getEntities()).thenReturn(entities);
+            UltiCleanerTestHelper.addMockWorld(world);
+
+            when(config.getItemIgnoreRecentSeconds()).thenReturn(0);
+            when(config.isItemIgnoreNamed()).thenReturn(false);
+            when(config.isEntityWhitelistNamed()).thenReturn(false);
+            when(config.isEntityWhitelistLeashed()).thenReturn(false);
+            when(config.isEntityWhitelistTamed()).thenReturn(false);
+            when(tpsScheduler.applyThresholdReduction(1)).thenReturn(1);
+
+            initServiceWithConfig(Collections.emptyList(), Arrays.asList("ZOMBIE"), Collections.emptyList());
+
+            UltiCleanerTestHelper.setField(service, "lastSmartCleanTime", 0L);
+
+            Method method = CleanerService.class.getDeclaredMethod("checkSmartClean");
+            method.setAccessible(true);
+            method.invoke(service);
+
+            // Item clean should have triggered (fires PreItemCleanEvent)
+            // Note: cleanItemsWithBatch sets isCleaningInProgress=true, which blocks
+            // the subsequent cleanEntitiesWithBatch call — this is expected behavior
+            verify(Bukkit.getPluginManager(), atLeastOnce()).callEvent(any(PreItemCleanEvent.class));
+        }
+
+        @Test
+        @DisplayName("Should trigger only entity clean when only mob threshold exceeded")
+        void smartCleanOnlyMobThreshold() throws Exception {
+            when(config.isSmartCleanEnabled()).thenReturn(true);
+            when(config.getSmartCleanCooldown()).thenReturn(0);
+            when(config.getItemMaxThreshold()).thenReturn(10000); // high threshold, not exceeded
+            when(config.getMobMaxThreshold()).thenReturn(1);
+
+            World world = UltiCleanerTestHelper.createMockWorld("world");
+            List<Entity> entities = new ArrayList<>();
+            // 5 zombies (exceeds threshold of 1)
+            for (int i = 0; i < 5; i++) {
+                entities.add(createMockLivingEntity(world, EntityType.ZOMBIE, null, false));
+            }
+            when(world.getEntities()).thenReturn(entities);
+            UltiCleanerTestHelper.addMockWorld(world);
+
+            when(config.isEntityWhitelistNamed()).thenReturn(false);
+            when(config.isEntityWhitelistLeashed()).thenReturn(false);
+            when(config.isEntityWhitelistTamed()).thenReturn(false);
+            when(tpsScheduler.applyThresholdReduction(10000)).thenReturn(10000);
+            when(tpsScheduler.applyThresholdReduction(1)).thenReturn(1);
+
+            initServiceWithConfig(Collections.emptyList(), Arrays.asList("ZOMBIE"), Collections.emptyList());
+
+            UltiCleanerTestHelper.setField(service, "lastSmartCleanTime", 0L);
+
+            Method method = CleanerService.class.getDeclaredMethod("checkSmartClean");
+            method.setAccessible(true);
+            method.invoke(service);
+
+            // Entity clean should have triggered
+            verify(Bukkit.getPluginManager(), atLeastOnce()).callEvent(any(PreEntityCleanEvent.class));
+        }
+    }
+
+    // ==================== Broadcast Methods - Multiple Players ====================
+
+    @Nested
+    @DisplayName("Broadcast to Multiple Players")
+    class BroadcastMultiplePlayers {
+
+        @Test
+        @DisplayName("Should broadcast to all online players")
+        void broadcastToAll() throws Exception {
+            Player player1 = UltiCleanerTestHelper.createMockPlayer("Player1", UUID.randomUUID());
+            Player player2 = UltiCleanerTestHelper.createMockPlayer("Player2", UUID.randomUUID());
+            Collection<Player> players = Arrays.asList(player1, player2);
+            lenient().when(UltiCleanerTestHelper.getMockServer().getOnlinePlayers()).thenReturn((Collection) players);
+
+            initServiceWithEmptyConfig();
+
+            Method method = CleanerService.class.getDeclaredMethod("broadcastMessage", String.class);
+            method.setAccessible(true);
+            method.invoke(service, "&aTest message");
+
+            verify(player1).sendMessage(anyString());
+            verify(player2).sendMessage(anyString());
+        }
     }
 }
