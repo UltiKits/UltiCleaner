@@ -16,9 +16,11 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.*;
+import org.mockito.ArgumentCaptor;
 
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -125,6 +127,32 @@ class CleanerServiceTest {
         lenient().when(entity.isTamed()).thenReturn(isTamed);
         lenient().when(entity.isLeashed()).thenReturn(false);
         return entity;
+    }
+
+    /**
+     * Capture the Consumer&lt;BukkitTask&gt; passed to runTaskTimer(Plugin, Consumer, long, long),
+     * which returns void -- so it must be captured via doNothing() rather than when()/thenReturn().
+     */
+    @SuppressWarnings("unchecked")
+    private ArgumentCaptor<Consumer<BukkitTask>> captureBatchTickConsumer() {
+        ArgumentCaptor<Consumer<BukkitTask>> captor = ArgumentCaptor.forClass(Consumer.class);
+        doNothing().when(UltiCleanerTestHelper.getMockScheduler())
+                .runTaskTimer(any(), captor.capture(), anyLong(), anyLong());
+        return captor;
+    }
+
+    /**
+     * Mock runTaskAsynchronously(Plugin, Runnable) to run the runnable synchronously, so the
+     * async CleanCompleteEvent-firing lambda executes on the calling thread during the test.
+     */
+    private void makeRunTaskAsynchronouslySynchronous() {
+        BukkitTask handle = mock(BukkitTask.class);
+        when(UltiCleanerTestHelper.getMockScheduler().runTaskAsynchronously(any(), any(Runnable.class)))
+                .thenAnswer(invocation -> {
+                    Runnable runnable = invocation.getArgument(1);
+                    runnable.run();
+                    return handle;
+                });
     }
 
     // ==================== Initialization ====================
@@ -1256,6 +1284,51 @@ class CleanerServiceTest {
 
             // When cancelled, no batch removal should be started
         }
+
+        @Test
+        @DisplayName("Should fire an async CleanCompleteEvent for ITEMS with the exact removed count once the batch tick completes")
+        void firesCleanCompleteEventOnBatchCompletion() throws Exception {
+            World world = UltiCleanerTestHelper.createMockWorld("world");
+            Item item = createMockItem(world, "STONE", false, 1000);
+            when(world.getEntities()).thenReturn(Arrays.asList(item));
+            UltiCleanerTestHelper.addMockWorld(world);
+            when(UltiCleanerTestHelper.getMockServer().getEntity(item.getUniqueId())).thenReturn(item);
+            when(item.isValid()).thenReturn(true);
+
+            when(config.getItemIgnoreRecentSeconds()).thenReturn(0);
+            when(config.isItemIgnoreNamed()).thenReturn(false);
+            initServiceWithEmptyConfig();
+
+            makeRunTaskAsynchronouslySynchronous();
+            ArgumentCaptor<Consumer<BukkitTask>> captor = captureBatchTickConsumer();
+
+            Method method = CleanerService.class.getDeclaredMethod("cleanItemsWithBatch", PreItemCleanEvent.CleanTrigger.class);
+            method.setAccessible(true);
+            method.invoke(service, PreItemCleanEvent.CleanTrigger.MANUAL);
+
+            captor.getValue().accept(mock(BukkitTask.class));
+
+            verify(item).remove();
+
+            // callEvent(Object) is invoked for both PreItemCleanEvent and CleanCompleteEvent in
+            // this flow -- capture every call and pick out the CleanCompleteEvent one, rather
+            // than constraining the verify() itself (ArgumentCaptor.capture() matches any type
+            // at runtime regardless of its declared generic parameter).
+            ArgumentCaptor<org.bukkit.event.Event> eventCaptor = ArgumentCaptor.forClass(org.bukkit.event.Event.class);
+            verify(Bukkit.getPluginManager(), atLeastOnce()).callEvent(eventCaptor.capture());
+
+            com.ultikits.plugins.cleaner.events.CleanCompleteEvent fired = eventCaptor.getAllValues().stream()
+                    .filter(com.ultikits.plugins.cleaner.events.CleanCompleteEvent.class::isInstance)
+                    .map(com.ultikits.plugins.cleaner.events.CleanCompleteEvent.class::cast)
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("CleanCompleteEvent was not fired"));
+
+            assertThat(fired.getCleanType())
+                    .isEqualTo(com.ultikits.plugins.cleaner.events.CleanCompleteEvent.CleanType.ITEMS);
+            assertThat(fired.getCleanedCount()).isEqualTo(1);
+            assertThat(fired.getTrigger())
+                    .isEqualTo(com.ultikits.plugins.cleaner.events.CleanCompleteEvent.CleanTrigger.MANUAL);
+        }
     }
 
     // ==================== Clean Entities With Batch ====================
@@ -1326,6 +1399,48 @@ class CleanerServiceTest {
             method.invoke(service, PreEntityCleanEvent.CleanTrigger.MANUAL);
 
             // Should broadcast cancel message
+        }
+
+        @Test
+        @DisplayName("Should fire an async CleanCompleteEvent for ENTITIES with the exact removed count once the batch tick completes")
+        void firesCleanCompleteEventOnBatchCompletion() throws Exception {
+            World world = UltiCleanerTestHelper.createMockWorld("world");
+            LivingEntity zombie = createMockLivingEntity(world, EntityType.ZOMBIE, null, false);
+            when(world.getEntities()).thenReturn(Arrays.asList(zombie));
+            UltiCleanerTestHelper.addMockWorld(world);
+            when(UltiCleanerTestHelper.getMockServer().getEntity(zombie.getUniqueId())).thenReturn(zombie);
+            when(zombie.isValid()).thenReturn(true);
+
+            when(config.isEntityWhitelistNamed()).thenReturn(false);
+            when(config.isEntityWhitelistLeashed()).thenReturn(false);
+            when(config.isEntityWhitelistTamed()).thenReturn(false);
+            initServiceWithConfig(Collections.emptyList(), Arrays.asList("ZOMBIE"), Collections.emptyList());
+
+            makeRunTaskAsynchronouslySynchronous();
+            ArgumentCaptor<Consumer<BukkitTask>> captor = captureBatchTickConsumer();
+
+            Method method = CleanerService.class.getDeclaredMethod("cleanEntitiesWithBatch", PreEntityCleanEvent.CleanTrigger.class);
+            method.setAccessible(true);
+            method.invoke(service, PreEntityCleanEvent.CleanTrigger.MANUAL);
+
+            captor.getValue().accept(mock(BukkitTask.class));
+
+            verify(zombie).remove();
+
+            ArgumentCaptor<org.bukkit.event.Event> eventCaptor = ArgumentCaptor.forClass(org.bukkit.event.Event.class);
+            verify(Bukkit.getPluginManager(), atLeastOnce()).callEvent(eventCaptor.capture());
+
+            com.ultikits.plugins.cleaner.events.CleanCompleteEvent fired = eventCaptor.getAllValues().stream()
+                    .filter(com.ultikits.plugins.cleaner.events.CleanCompleteEvent.class::isInstance)
+                    .map(com.ultikits.plugins.cleaner.events.CleanCompleteEvent.class::cast)
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("CleanCompleteEvent was not fired"));
+
+            assertThat(fired.getCleanType())
+                    .isEqualTo(com.ultikits.plugins.cleaner.events.CleanCompleteEvent.CleanType.ENTITIES);
+            assertThat(fired.getCleanedCount()).isEqualTo(1);
+            assertThat(fired.getTrigger())
+                    .isEqualTo(com.ultikits.plugins.cleaner.events.CleanCompleteEvent.CleanTrigger.MANUAL);
         }
 
         @Test
@@ -1750,6 +1865,34 @@ class CleanerServiceTest {
 
             // isCleaningInProgress should be true until the timer task completes
             assertThat(service.isCleaningInProgress()).isTrue();
+        }
+
+        @Test
+        @DisplayName("Should announce mid-batch progress via i18n to online ops when a tick does not finish the whole batch")
+        void announcesMidBatchProgressToOps() throws Exception {
+            initServiceWithEmptyConfig();
+            when(config.isShowCleanProgress()).thenReturn(true);
+
+            Player op = mock(Player.class);
+            when(op.isOp()).thenReturn(true);
+            doReturn(Collections.singletonList(op))
+                    .when(UltiCleanerTestHelper.getMockServer()).getOnlinePlayers();
+
+            List<UUID> uuids = Arrays.asList(UUID.randomUUID(), UUID.randomUUID());
+
+            ArgumentCaptor<Consumer<BukkitTask>> captor = captureBatchTickConsumer();
+
+            Method method = CleanerService.class.getDeclaredMethod("removeEntitiesInBatches",
+                    List.class, int.class, java.util.function.Consumer.class);
+            method.setAccessible(true);
+            java.util.function.Consumer<Integer> callback = count -> {};
+
+            // batchSize=1 with 2 uuids means this tick will not finish the batch, so the
+            // mid-batch progress branch (not the onComplete callback) is what fires.
+            method.invoke(service, uuids, 1, callback);
+            captor.getValue().accept(mock(BukkitTask.class));
+
+            verify(op).sendMessage(contains("1/2"));
         }
     }
 

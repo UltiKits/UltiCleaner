@@ -132,6 +132,23 @@ class ServerTypeUtilTest {
             boolean result = ServerTypeUtil.hasTpsMethod();
             assertThat(result).isFalse();
         }
+
+        @Test
+        @DisplayName("getServerTps should return null when the cached reflective method fails against the current server")
+        void getServerTpsCatchesInvocationFailure() throws Exception {
+            // Bukkit.getServer() returns a mock whose getClass() has no getTPS -- spigot-api
+            // 1.20.1's Server interface does not declare it, so hasTpsMethod()'s own success
+            // path is unreachable in this test environment. Directly force the cached method to
+            // one that IS callable on the mock but returns a value that can't be cast to
+            // double[], which is exactly what the catch(Exception e) branch defends against.
+            UltiCleanerTestHelper.setStaticField(ServerTypeUtil.class, "hasTpsMethod", true);
+            UltiCleanerTestHelper.setStaticField(ServerTypeUtil.class, "getTpsMethod",
+                    Object.class.getMethod("toString"));
+
+            double[] tps = ServerTypeUtil.getServerTps();
+
+            assertThat(tps).isNull();
+        }
     }
 
     // ==================== Chunk Methods ====================
@@ -222,6 +239,19 @@ class ServerTypeUtilTest {
             // Either way, the call should not throw and should return a boolean.
             boolean result = ServerTypeUtil.isEntitiesLoaded(chunk);
             assertThat(result).isIn(true, false);
+        }
+
+        @Test
+        @DisplayName("isEntitiesLoaded should fall back to chunk.isLoaded() when the Paper reflective call throws")
+        void isEntitiesLoadedFallsBackWhenReflectiveCallThrows() throws Exception {
+            UltiCleanerTestHelper.setStaticField(ServerTypeUtil.class, "isPaper", true);
+            UltiCleanerTestHelper.setStaticField(ServerTypeUtil.class, "isEntitiesLoadedMethod", null);
+            when(chunk.isEntitiesLoaded()).thenThrow(new RuntimeException("boom"));
+            when(chunk.isLoaded()).thenReturn(true);
+
+            boolean result = ServerTypeUtil.isEntitiesLoaded(chunk);
+
+            assertThat(result).isTrue();
         }
     }
 

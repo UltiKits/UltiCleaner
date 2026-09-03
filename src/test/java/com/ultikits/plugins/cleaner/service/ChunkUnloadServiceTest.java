@@ -12,10 +12,13 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.scheduler.BukkitScheduler;
+import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.*;
+import org.mockito.ArgumentCaptor;
 
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.*;
@@ -955,6 +958,181 @@ class ChunkUnloadServiceTest {
             List<Chunk> chunks = (List<Chunk>) method.invoke(service);
 
             assertThat(chunks).hasSize(2);
+        }
+    }
+
+    // ==================== Unload Chunks In Batches (scheduler tick body) ====================
+
+    @Nested
+    @DisplayName("Unload Chunks In Batches")
+    class UnloadChunksInBatches {
+
+        @SuppressWarnings("unchecked")
+        private ArgumentCaptor<Consumer<BukkitTask>> captureBatchTickConsumer() {
+            // runTaskTimer(Plugin, Consumer<BukkitTask>, long, long) returns void -- capture the
+            // consumer via doNothing() rather than when()/thenReturn(), which is only valid for
+            // methods with a return value.
+            ArgumentCaptor<Consumer<BukkitTask>> captor = ArgumentCaptor.forClass(Consumer.class);
+            doNothing().when(UltiCleanerTestHelper.getMockScheduler())
+                    .runTaskTimer(any(), captor.capture(), anyLong(), anyLong());
+            return captor;
+        }
+
+        private void invokeUnloadChunksInBatches(List<Chunk> chunks) throws Exception {
+            Method method = ChunkUnloadService.class.getDeclaredMethod("unloadChunksInBatches", List.class);
+            method.setAccessible(true);
+            method.invoke(service, chunks);
+        }
+
+        @Test
+        @DisplayName("Should skip a force-loaded chunk, skip a cancelled-event chunk, and unload the remaining safe chunk on Spigot")
+        void skipsUnsafeAndCancelledThenUnloadsRemainingChunkOnSpigot() throws Exception {
+            UltiCleanerTestHelper.setStaticField(
+                    Class.forName("com.ultikits.plugins.cleaner.utils.ServerTypeUtil"),
+                    "isPaper", false);
+
+            when(config.getChunkUnloadBatchSize()).thenReturn(10);
+            when(config.getChunkUnloadTimeout()).thenReturn(5);
+
+            World world = UltiCleanerTestHelper.createMockWorld("world");
+            Chunk unsafeChunk = createSafeChunk(world, 1, 1);
+            when(unsafeChunk.isForceLoaded()).thenReturn(true);
+
+            Chunk cancelledChunk = createSafeChunk(world, 2, 2);
+
+            Chunk unloadedChunk = createSafeChunk(world, 3, 3);
+            when(unloadedChunk.unload(true)).thenReturn(true);
+
+            PluginManager pluginManager = UltiCleanerTestHelper.getMockServer().getPluginManager();
+            doAnswer(invocation -> {
+                Object event = invocation.getArgument(0);
+                if (event instanceof PreChunkUnloadEvent
+                        && ((PreChunkUnloadEvent) event).getChunk() == cancelledChunk) {
+                    ((PreChunkUnloadEvent) event).setCancelled(true);
+                }
+                return null;
+            }).when(pluginManager).callEvent(any());
+
+            BukkitTask mockTask = mock(BukkitTask.class);
+            ArgumentCaptor<Consumer<BukkitTask>> captor = captureBatchTickConsumer();
+
+            invokeUnloadChunksInBatches(Arrays.asList(unsafeChunk, cancelledChunk, unloadedChunk));
+            captor.getValue().accept(mockTask);
+
+            verify(unsafeChunk, never()).unload(anyBoolean());
+            verify(cancelledChunk, never()).unload(anyBoolean());
+            verify(unloadedChunk).unload(true);
+            verify(mockTask).cancel();
+        }
+
+        @Test
+        @DisplayName("Should announce the exact unloaded count via i18n when progress is enabled and an op is online")
+        void announcesUnloadedCountToOpsWhenProgressEnabled() throws Exception {
+            UltiCleanerTestHelper.setStaticField(
+                    Class.forName("com.ultikits.plugins.cleaner.utils.ServerTypeUtil"),
+                    "isPaper", false);
+
+            when(config.getChunkUnloadBatchSize()).thenReturn(10);
+            when(config.getChunkUnloadTimeout()).thenReturn(5);
+            when(config.isShowCleanProgress()).thenReturn(true);
+            when(UltiCleanerTestHelper.getMockPlugin().i18n("chunk_unloaded"))
+                    .thenReturn("Unloaded {COUNT} chunks");
+
+            World world = UltiCleanerTestHelper.createMockWorld("world");
+            Chunk chunk = createSafeChunk(world, 5, 5);
+            when(chunk.unload(true)).thenReturn(true);
+
+            Player op = mock(Player.class);
+            when(op.isOp()).thenReturn(true);
+            doReturn(Collections.singletonList(op))
+                    .when(UltiCleanerTestHelper.getMockServer()).getOnlinePlayers();
+
+            BukkitTask mockTask = mock(BukkitTask.class);
+            ArgumentCaptor<Consumer<BukkitTask>> captor = captureBatchTickConsumer();
+
+            invokeUnloadChunksInBatches(Collections.singletonList(chunk));
+            captor.getValue().accept(mockTask);
+
+            verify(op).sendMessage("Unloaded 1 chunks");
+        }
+
+        @Test
+        @DisplayName("Should announce the exact unloaded count via i18n on the Paper async completion path")
+        void announcesUnloadedCountToOpsOnPaperAsyncPath() throws Exception {
+            UltiCleanerTestHelper.setStaticField(
+                    Class.forName("com.ultikits.plugins.cleaner.utils.ServerTypeUtil"),
+                    "isPaper", true);
+
+            when(config.getChunkUnloadBatchSize()).thenReturn(10);
+            when(config.getChunkUnloadTimeout()).thenReturn(5);
+            when(config.isShowCleanProgress()).thenReturn(true);
+            when(UltiCleanerTestHelper.getMockPlugin().i18n("chunk_unloaded"))
+                    .thenReturn("Unloaded {COUNT} chunks");
+
+            // Make runTask synchronously execute the scheduled unload so the returned
+            // CompletableFuture completes before unloadChunksInBatches's own tick body returns.
+            BukkitTask runTaskHandle = mock(BukkitTask.class);
+            when(UltiCleanerTestHelper.getMockScheduler().runTask(any(), any(Runnable.class)))
+                    .thenAnswer(invocation -> {
+                        Runnable runnable = invocation.getArgument(1);
+                        runnable.run();
+                        return runTaskHandle;
+                    });
+
+            World world = UltiCleanerTestHelper.createMockWorld("world");
+            Chunk chunk = createSafeChunk(world, 7, 7);
+            when(chunk.unload(true)).thenReturn(true);
+            // isSafeToUnload() re-checks ServerTypeUtil.isEntitiesLoaded(chunk) on the Paper
+            // path, which reflectively calls chunk.isEntitiesLoaded() -- stub it directly since
+            // Mockito's unstubbed boolean default (false) would otherwise mark this chunk unsafe.
+            when(chunk.isEntitiesLoaded()).thenReturn(true);
+
+            Player op = mock(Player.class);
+            when(op.isOp()).thenReturn(true);
+            doReturn(Collections.singletonList(op))
+                    .when(UltiCleanerTestHelper.getMockServer()).getOnlinePlayers();
+
+            BukkitTask mockTask = mock(BukkitTask.class);
+            ArgumentCaptor<Consumer<BukkitTask>> captor = captureBatchTickConsumer();
+
+            invokeUnloadChunksInBatches(Collections.singletonList(chunk));
+            captor.getValue().accept(mockTask);
+
+            verify(chunk).unload(true);
+            verify(op).sendMessage("Unloaded 1 chunks");
+        }
+    }
+
+    // ==================== Unload Chunk Async Timeout ====================
+
+    @Nested
+    @DisplayName("Unload Chunk Async Timeout")
+    class UnloadChunkAsyncTimeout {
+
+        @Test
+        @DisplayName("unloadChunkAsync should resolve to false when the timeout fires before the scheduled unload runs")
+        void resolvesFalseWhenTimeoutFiresFirst() throws Exception {
+            UltiCleanerTestHelper.setStaticField(
+                    Class.forName("com.ultikits.plugins.cleaner.utils.ServerTypeUtil"),
+                    "isPaper", true);
+
+            World world = UltiCleanerTestHelper.createMockWorld("world");
+            Chunk chunk = createSafeChunk(world, 9, 9);
+
+            // The shared helper's default runTask stub returns a dummy task without ever
+            // invoking the runnable, so the only way this future resolves is the timeout path.
+            Method method = ChunkUnloadService.class.getDeclaredMethod(
+                    "unloadChunkAsync", Chunk.class, int.class);
+            method.setAccessible(true);
+
+            @SuppressWarnings("unchecked")
+            java.util.concurrent.CompletableFuture<Boolean> future =
+                    (java.util.concurrent.CompletableFuture<Boolean>) method.invoke(service, chunk, 0);
+
+            Boolean result = future.get(5, TimeUnit.SECONDS);
+
+            assertThat(result).isFalse();
+            verify(UltiCleanerTestHelper.getMockLogger()).warn(contains("Chunk unload timeout at 9, 9"));
         }
     }
 }
