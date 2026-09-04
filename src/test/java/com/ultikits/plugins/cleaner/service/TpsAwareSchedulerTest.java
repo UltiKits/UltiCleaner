@@ -2,8 +2,10 @@ package com.ultikits.plugins.cleaner.service;
 
 import com.ultikits.plugins.cleaner.UltiCleanerTestHelper;
 import com.ultikits.plugins.cleaner.config.CleanerConfig;
+import com.ultikits.plugins.cleaner.utils.ServerTypeUtil;
 
 import org.junit.jupiter.api.*;
+import org.mockito.MockedStatic;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -106,6 +108,21 @@ class TpsAwareSchedulerTest {
             boolean isCritical = scheduler.isCriticalTps();
 
             assertThat(isCritical).isIn(true, false);
+        }
+
+        @Test
+        @DisplayName("getCurrentTps should use the native TPS sample when ServerTypeUtil reports 3+ values")
+        void getCurrentTpsUsesNativeTpsWhenAvailable() {
+            when(config.isTpsAdaptiveEnabled()).thenReturn(true);
+            when(config.getTpsSampleWindow()).thenReturn("1m");
+
+            try (MockedStatic<ServerTypeUtil> mocked = mockStatic(ServerTypeUtil.class)) {
+                mocked.when(ServerTypeUtil::getServerTps).thenReturn(new double[]{19.98, 19.5, 18.2});
+
+                double tps = scheduler.getCurrentTps();
+
+                assertThat(tps).isEqualTo(19.98);
+            }
         }
     }
 
