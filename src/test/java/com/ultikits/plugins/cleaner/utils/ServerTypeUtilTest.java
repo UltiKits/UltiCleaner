@@ -122,15 +122,17 @@ class ServerTypeUtilTest {
         }
 
         @Test
-        @DisplayName("hasTpsMethod should return false when no getTPS method exists")
-        void hasTpsMethodFalse() throws Exception {
+        @DisplayName("hasTpsMethod should return true on Paper, where Server declares getTPS")
+        void hasTpsMethodTrueOnPaper() throws Exception {
             // Reset cache to null so it re-detects
             UltiCleanerTestHelper.setStaticField(ServerTypeUtil.class, "hasTpsMethod", null);
             UltiCleanerTestHelper.setStaticField(ServerTypeUtil.class, "getTpsMethod", null);
 
-            // Since the mock server doesn't have getTPS, should be false
+            // paper-api's Server interface declares getTPS() as an abstract method (unlike
+            // spigot-api, where it does not exist at all), so the Mockito-mocked Server's
+            // generated class genuinely has the method and the reflective lookup succeeds.
             boolean result = ServerTypeUtil.hasTpsMethod();
-            assertThat(result).isFalse();
+            assertThat(result).isTrue();
         }
 
         @Test
@@ -214,19 +216,25 @@ class ServerTypeUtilTest {
         }
 
         @Test
-        @DisplayName("getChunkAtAsync with Paper but no async method should fall back")
-        void getChunkAtAsyncPaperFallback() throws Exception {
+        @DisplayName("getChunkAtAsync on Paper should use the reflective World#getChunkAtAsync method")
+        void getChunkAtAsyncUsesReflectivePaperMethod() throws Exception {
             UltiCleanerTestHelper.setStaticField(ServerTypeUtil.class, "isPaper", true);
-            // getChunkAtAsyncMethod is null by default, reflection will fail
+            // getChunkAtAsyncMethod is null by default, forcing a fresh reflective lookup.
             UltiCleanerTestHelper.setStaticField(ServerTypeUtil.class, "getChunkAtAsyncMethod", null);
 
-            when(world.getChunkAt(5, 10)).thenReturn(chunk);
+            // paper-api's World interface declares getChunkAtAsync(int, int) as a default
+            // method (unlike spigot-api, where it does not exist at all), so the reflective
+            // lookup now succeeds and the primary path is taken instead of falling through to
+            // sync loading. Stub the mock World's own method directly to prove the reflective
+            // invocation dispatches to it rather than silently swallowing a null return.
+            CompletableFuture<Chunk> paperFuture = CompletableFuture.completedFuture(chunk);
+            when(world.getChunkAtAsync(5, 10)).thenReturn(paperFuture);
 
             CompletableFuture<Chunk> future = ServerTypeUtil.getChunkAtAsync(world, 5, 10);
 
-            assertThat(future).isNotNull();
-            // Should fall through to sync loading
+            assertThat(future).isSameAs(paperFuture);
             assertThat(future.isDone()).isTrue();
+            assertThat(future.get()).isSameAs(chunk);
         }
 
         @Test
