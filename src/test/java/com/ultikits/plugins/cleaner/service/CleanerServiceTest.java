@@ -82,7 +82,7 @@ class CleanerServiceTest {
         Item item = mock(Item.class);
         UUID uuid = UUID.randomUUID();
         lenient().when(item.getUniqueId()).thenReturn(uuid);
-        lenient().when(item.getType()).thenReturn(EntityType.DROPPED_ITEM);
+        lenient().when(item.getType()).thenReturn(EntityType.ITEM);
         lenient().when(item.getWorld()).thenReturn(world);
         lenient().when(item.getTicksLived()).thenReturn(ticksLived);
 
