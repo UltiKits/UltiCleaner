@@ -17,13 +17,20 @@ for UAT execution and issue reconciliation — the public description of these f
   so lowercasing it would make it un-greppable against its own source line. An ID changes only
   when the feature's identity changes, never on rewording. IDs are unique within a repository.
 - **Kind**, exactly these eight values: `command`, `config`, `event`, `gui`, `scheduled`,
-  `placeholder`, `persistence`, `gate`. Each maps one-to-one onto a reconciliation-table line.
-  This module has no `event` rows (0 `@EventListener` classes and 0 `@EventHandler` methods — it
-  drives everything from its own five `@Scheduled` tasks, never from a Bukkit event this module
-  itself listens for), no `gui` rows (no GUI page class), no `placeholder` rows (no
+  `placeholder`, `persistence`, `gate`. Each maps onto a reconciliation-table line, with one
+  documented exception: a framework lifecycle-hook row (`## Lifecycle Hooks`) is `event`-Kind but
+  no reconciliation line counts it.
+  This module has 0 `@EventListener` classes and 0 `@EventHandler` methods — it drives everything
+  from its own five `@Scheduled` tasks, never from a Bukkit event this module itself listens for —
+  so no `event` row is backed by a listener annotation site and the `@EventListener`
+  reconciliation line below stays 0 against 0. It carries exactly one `event`-Kind row,
+  `ulticleaner.lifecycle.reload` in `## Lifecycle Hooks` below: `onReload()` is a callback the
+  framework invokes, not a command this module maps or a config key it reads, and it is reached by
+  overriding a framework method rather than through an annotation site, so no reconciliation line
+  counts it. This module has no `gui` rows (no GUI page class), no `placeholder` rows (no
   `PlaceholderExpansion`), no `persistence` rows (no `@Table` entity — every state this module
   keeps is either transient runtime state or the `config/cleaner.yml` file itself), and no `gate`
-  rows (0 `@ConditionalOnConfig` sites). All five stay in the vocabulary for cross-repository
+  rows (0 `@ConditionalOnConfig` sites). All four stay in the vocabulary for cross-repository
   consistency even though none appears below.
 - **Tier**, exactly three: `player`, `admin`, `internal`. Judged from what the feature is for,
   not from whether it carries a permission string. `CleanCommand` is class-level
@@ -50,10 +57,10 @@ for UAT execution and issue reconciliation — the public description of these f
   here as a plain, sourced observation, with the filed issue number, never as advice on how to fix
   it.
 - **A note on this module's actual language behaviour, read before any other row below:** this
-  module ships `lang/en.yml` and `lang/zh.yml` (36 keys each, faithfully paired), but only 4 of
-  those 36 keys are ever read anywhere in this module's source — confirmed by
-  `grep -rn "i18n(" src/main/java`, which returns exactly 4 call sites (`UltiCleaner.java`'s
-  enable/disable/reload log lines, and `ChunkUnloadService`'s one chunk-unload progress
+  module ships `lang/en.yml` and `lang/zh.yml` (35 keys each, faithfully paired), but only 3 of
+  those 35 keys are ever read anywhere in this module's source — confirmed by
+  `grep -rn "i18n(" src/main/java`, which returns exactly 3 call sites (`UltiCleaner.java`'s
+  enable and reload log lines, and `ChunkUnloadService`'s one chunk-unload progress
   broadcast). Every player-facing string in `CleanCommand` (help/status/check output) is a
   hardcoded Simplified Chinese literal with NO i18n or config indirection at all. Every
   scheduled-cleanup broadcast in `CleanerService` (warnings, cleaned-count messages,
@@ -96,7 +103,8 @@ exactly (5 against 5).
 NONE of the four is backed by an `@EventListener`/`@EventHandler` of this module's own — they are
 constructed and fired (`Bukkit.getPluginManager().callEvent(...)`) directly from the
 `@Scheduled`/`@CmdMapping` methods that trigger a cleanup, for OTHER plugins to listen to. Per the
-Kind vocabulary's one-to-one mapping to the reconciliation table, they therefore do not get a
+Kind vocabulary's mapping to the reconciliation table (whose only exception is the framework-invoked
+lifecycle-hook override under `## Lifecycle Hooks`, which is not a Bukkit event), they therefore do not get a
 `event`-Kind row of their own (the `@EventListener` reconciliation line stays 0 against 0, per its
 own stated reason above) — each is instead documented in prose within the `## Automatic Cleanup`
 row of the method that fires it, Source-cited as `TriggeringMethod (fires EventClassName)`.
@@ -176,3 +184,22 @@ count of 38 exactly).
 | ulticleaner.config.cleaner.tps.low-threshold | TPS value STRICTLY BELOW which the server is considered low (at exactly this value, no reduction applies, since `isLowTps` uses `<` not `<=`), applying `tps.low-reduction` | config | `config/cleaner.yml: tps.low-threshold (default: 18.0)` | n/a | n/a | admin | brief | TpsAwareScheduler#isLowTps |
 | ulticleaner.config.cleaner.tps.sample-window | Which rolling TPS average (`1m`/`5m`/`15m`) `getCurrentTps()` reads, from either the native `getTPS()` array or (when unavailable) the fallback history arrays | config | `config/cleaner.yml: tps.sample-window (default: 1m)` | n/a | n/a | admin | brief | TpsAwareScheduler#getTpsBySampleWindow |
 | ulticleaner.config.cleaner.worlds.blacklist | World names excluded from every cleanup (item, entity) and chunk-unload scan | config | `config/cleaner.yml: worlds.blacklist (default: world_creative)` | n/a | n/a | admin | brief | CleanerService#collectItemsToClean, CleanerService#collectEntitiesToClean, ChunkUnloadService#collectChunksToUnload |
+
+## Lifecycle Hooks
+
+`UltiCleaner#onReload()` is the extension-point hook that the framework's `final`
+`UltiToolsPlugin#reloadSelf()` invokes. Since `UltiKits/UltiCleaner#14`'s lifecycle-hook
+migration, `/ul reload UltiCleaner` (the framework's own command, not a `@CmdMapping` site in this
+repository, so no `command`-Kind row is added for it) runs, in order:
+`ConfigManager#reloadConfigs` (which re-reads `config/cleaner.yml` from disk into the same
+`CleanerConfig` bean `CleanerService` holds), the module's `language` object refresh, the
+`@ConditionalOnConfig` drift report (a no-op here, since this module has 0 such sites), the
+framework's own per-module reload INFO line, and finally `onReload()`. Before the migration this
+module overrode `reloadSelf()` itself, so neither the config re-read nor the language refresh ran:
+`config/cleaner.yml` was never re-read and `CleanerService#reload()` rebuilt its caches from the stale values. This
+module declares no `onUnregister()` override: its former unload override only logged a
+"disabled" line, and it was deleted along with the `cleaner_disabled` language key.
+
+| ID | Feature | Kind | How to reach | Permission | Target | Tier | Manual | Source |
+|---|---|---|---|---|---|---|---|---|
+| ulticleaner.lifecycle.reload | Rebuild `CleanerService`'s item-whitelist, entity-type and world-blacklist caches from the just-reloaded `config/cleaner.yml`, reset both the item and the entity cleanup countdowns to the reloaded `item.interval` and `entity.interval` values, and log the module's own `cleaner_reloaded` line, after the framework has already re-read the config file | event | `/ul reload UltiCleaner` (framework calls `reloadSelf()`, which runs its own steps first, then invokes this hook) | n/a | n/a | admin | brief | UltiCleaner#onReload, CleanerService#reload |
