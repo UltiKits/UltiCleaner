@@ -46,12 +46,14 @@ class UltiCleanerTest {
     }
 
     @Test
-    @DisplayName("UltiCleaner declares no unload hook and no override of either final template method (UltiKits/UltiCleaner#14)")
-    void noUnloadHookAndNoTemplateMethodOverride() {
+    @DisplayName("UltiCleaner declares no unload hook (UltiKits/UltiCleaner#14)")
+    void noUnloadHook() {
+        // unregisterSelf()/reloadSelf() need no check here: they are final in UltiToolsPlugin,
+        // so the compiler already rejects any override of them.
         for (java.lang.reflect.Method method : UltiCleaner.class.getDeclaredMethods()) {
             assertThat(method.getName())
                     .as("UltiCleaner must not declare %s", method)
-                    .isNotIn("unregisterSelf", "reloadSelf", "onUnregister");
+                    .isNotEqualTo("onUnregister");
         }
     }
 
