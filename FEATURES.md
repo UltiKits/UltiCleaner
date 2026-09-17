@@ -17,7 +17,9 @@ for UAT execution and issue reconciliation — the public description of these f
   so lowercasing it would make it un-greppable against its own source line. An ID changes only
   when the feature's identity changes, never on rewording. IDs are unique within a repository.
 - **Kind**, exactly these eight values: `command`, `config`, `event`, `gui`, `scheduled`,
-  `placeholder`, `persistence`, `gate`. Each maps one-to-one onto a reconciliation-table line.
+  `placeholder`, `persistence`, `gate`. Each maps onto a reconciliation-table line, with one
+  documented exception: a framework lifecycle-hook row (`## Lifecycle Hooks`) is `event`-Kind but
+  no reconciliation line counts it.
   This module has 0 `@EventListener` classes and 0 `@EventHandler` methods — it drives everything
   from its own five `@Scheduled` tasks, never from a Bukkit event this module itself listens for —
   so no `event` row is backed by a listener annotation site and the `@EventListener`
@@ -101,7 +103,8 @@ exactly (5 against 5).
 NONE of the four is backed by an `@EventListener`/`@EventHandler` of this module's own — they are
 constructed and fired (`Bukkit.getPluginManager().callEvent(...)`) directly from the
 `@Scheduled`/`@CmdMapping` methods that trigger a cleanup, for OTHER plugins to listen to. Per the
-Kind vocabulary's one-to-one mapping to the reconciliation table, they therefore do not get a
+Kind vocabulary's mapping to the reconciliation table (whose only exception is the framework-invoked
+lifecycle-hook override under `## Lifecycle Hooks`, which is not a Bukkit event), they therefore do not get a
 `event`-Kind row of their own (the `@EventListener` reconciliation line stays 0 against 0, per its
 own stated reason above) — each is instead documented in prose within the `## Automatic Cleanup`
 row of the method that fires it, Source-cited as `TriggeringMethod (fires EventClassName)`.
@@ -192,8 +195,8 @@ repository, so no `command`-Kind row is added for it) runs, in order:
 `CleanerConfig` bean `CleanerService` holds), the module's `language` object refresh, the
 `@ConditionalOnConfig` drift report (a no-op here, since this module has 0 such sites), the
 framework's own per-module reload INFO line, and finally `onReload()`. Before the migration this
-module overrode `reloadSelf()` itself and none of the framework steps ran, so `config/cleaner.yml`
-was never re-read and `CleanerService#reload()` rebuilt its caches from the stale values. This
+module overrode `reloadSelf()` itself, so neither the config re-read nor the language refresh ran:
+`config/cleaner.yml` was never re-read and `CleanerService#reload()` rebuilt its caches from the stale values. This
 module declares no `onUnregister()` override: its former unload override only logged a
 "disabled" line, and it was deleted along with the `cleaner_disabled` language key.
 
