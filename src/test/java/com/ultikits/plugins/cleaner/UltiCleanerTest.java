@@ -46,56 +46,56 @@ class UltiCleanerTest {
     }
 
     @Test
-    @DisplayName("unregisterSelf should log disabled message")
-    void unregisterSelf() throws Exception {
-        UltiCleaner plugin = mock(UltiCleaner.class);
-        PluginLogger logger = mock(PluginLogger.class);
-        SimpleContainer mockContext = mock(SimpleContainer.class);
-
-        when(plugin.getLogger()).thenReturn(logger);
-        when(plugin.i18n(anyString())).thenReturn("cleaner_disabled");
-        when(plugin.getContext()).thenReturn(mockContext);
-        doCallRealMethod().when(plugin).unregisterSelf();
-
-        plugin.unregisterSelf();
-
-        verify(logger).info("cleaner_disabled");
+    @DisplayName("UltiCleaner declares no unload hook and no override of either final template method (UltiKits/UltiCleaner#14)")
+    void noUnloadHookAndNoTemplateMethodOverride() {
+        for (java.lang.reflect.Method method : UltiCleaner.class.getDeclaredMethods()) {
+            assertThat(method.getName())
+                    .as("UltiCleaner must not declare %s", method)
+                    .isNotIn("unregisterSelf", "reloadSelf", "onUnregister");
+        }
     }
 
     @Test
-    @DisplayName("reloadSelf should reload CleanerService and log message")
-    void reloadSelf() throws Exception {
+    @DisplayName("onReload is a protected override (UltiKits/UltiCleaner#14)")
+    void onReloadIsProtectedOverride() throws Exception {
+        java.lang.reflect.Method onReload = UltiCleaner.class.getDeclaredMethod("onReload");
+        assertThat(java.lang.reflect.Modifier.isProtected(onReload.getModifiers())).isTrue();
+    }
+
+    @Test
+    @DisplayName("onReload should reload CleanerService exactly once and log the reloaded message (UltiKits/UltiCleaner#14)")
+    void onReloadReloadsCleanerServiceOnce() throws Exception {
         UltiCleaner plugin = mock(UltiCleaner.class);
         PluginLogger logger = mock(PluginLogger.class);
         SimpleContainer mockContext = mock(SimpleContainer.class);
         CleanerService mockCleanerService = mock(CleanerService.class);
 
         when(plugin.getLogger()).thenReturn(logger);
-        when(plugin.i18n(anyString())).thenReturn("cleaner_reloaded");
+        when(plugin.i18n(anyString())).thenAnswer(inv -> inv.getArgument(0));
         when(plugin.getContext()).thenReturn(mockContext);
         when(mockContext.getBean(CleanerService.class)).thenReturn(mockCleanerService);
-        doCallRealMethod().when(plugin).reloadSelf();
+        doCallRealMethod().when(plugin).onReload();
 
-        plugin.reloadSelf();
+        plugin.onReload();
 
-        verify(mockCleanerService).reload();
+        verify(mockCleanerService, times(1)).reload();
         verify(logger).info("cleaner_reloaded");
     }
 
     @Test
-    @DisplayName("reloadSelf should handle null CleanerService gracefully")
-    void reloadSelfNullService() throws Exception {
+    @DisplayName("onReload should handle a null CleanerService bean gracefully (UltiKits/UltiCleaner#14)")
+    void onReloadNullService() throws Exception {
         UltiCleaner plugin = mock(UltiCleaner.class);
         PluginLogger logger = mock(PluginLogger.class);
         SimpleContainer mockContext = mock(SimpleContainer.class);
 
         when(plugin.getLogger()).thenReturn(logger);
-        when(plugin.i18n(anyString())).thenReturn("cleaner_reloaded");
+        when(plugin.i18n(anyString())).thenAnswer(inv -> inv.getArgument(0));
         when(plugin.getContext()).thenReturn(mockContext);
         when(mockContext.getBean(CleanerService.class)).thenReturn(null);
-        doCallRealMethod().when(plugin).reloadSelf();
+        doCallRealMethod().when(plugin).onReload();
 
-        assertThatCode(() -> plugin.reloadSelf()).doesNotThrowAnyException();
+        assertThatCode(() -> plugin.onReload()).doesNotThrowAnyException();
         verify(logger).info("cleaner_reloaded");
     }
 
