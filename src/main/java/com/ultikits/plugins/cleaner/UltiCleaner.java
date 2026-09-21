@@ -53,12 +53,7 @@ public class UltiCleaner extends UltiToolsPlugin {
     }
 
     @Override
-    public void unregisterSelf() {
-        getLogger().info(i18n("cleaner_disabled"));
-    }
-
-    @Override
-    public void reloadSelf() {
+    protected void onReload() {
         CleanerService cleanerService = getContext().getBean(CleanerService.class);
         if (cleanerService != null) {
             cleanerService.reload();

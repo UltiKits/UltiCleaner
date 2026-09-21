@@ -1823,6 +1823,30 @@ class CleanerServiceTest {
             // Note: @Scheduled tasks continue running, only caches are reloaded
             assertThat(service).isNotNull();
         }
+
+        @Test
+        @DisplayName("Should reset both countdowns from the reloaded config values (UltiKits/UltiCleaner#14)")
+        void reloadResetsCountdownsFromReloadedConfig() {
+            when(config.isItemCleanEnabled()).thenReturn(true);
+            when(config.isEntityCleanEnabled()).thenReturn(true);
+            when(config.getItemCleanInterval()).thenReturn(300);
+            when(config.getEntityCleanInterval()).thenReturn(600);
+            initServiceWithEmptyConfig();
+
+            service.tickItemClean();
+            service.tickEntityClean();
+            assertThat(service.getItemCountdown()).isEqualTo(299);
+            assertThat(service.getEntityCountdown()).isEqualTo(599);
+
+            // ConfigManager#reloadConfigs rewrites the same CleanerConfig bean in place
+            when(config.getItemCleanInterval()).thenReturn(20);
+            when(config.getEntityCleanInterval()).thenReturn(45);
+
+            service.reload();
+
+            assertThat(service.getItemCountdown()).isEqualTo(20);
+            assertThat(service.getEntityCountdown()).isEqualTo(45);
+        }
     }
 
     // ==================== Remove Entities In Batches ====================
