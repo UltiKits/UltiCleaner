@@ -35,10 +35,10 @@ public final class RemovedConfigKeys {
     static {
         Map<String, String> removed = new LinkedHashMap<String, String>();
         removed.put("messages.prefix",
-                "The cleanup message prefix is no longer a configuration value. It now comes from "
-                        + "this module's language catalogue, where every cleanup message already "
-                        + "carries its own translated prefix, so an English server gets an English "
-                        + "one (UltiKits/UltiCleaner#18).");
+                "Nothing ever read this key, so no message was ever prefixed from it and deleting "
+                        + "it changes nothing you see. The prefix in a cleanup broadcast is part of "
+                        + "that broadcast's own text: edit the 'messages.*' key for the message you "
+                        + "want to change (UltiKits/UltiCleaner#18).");
         String chunk = "Chunk unloading was removed: the server engine already unloads idle chunks "
                 + "by itself, so this module's version could only ever reach the chunks the server "
                 + "deliberately keeps resident. There is no replacement setting "

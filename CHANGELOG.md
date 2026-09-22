@@ -71,12 +71,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
     and `stats_chunks_unloadable` language keys.
   `/clean check`'s "loaded chunks" line stays: it is a plain server statistic, not a readout of
   this feature.
-- Removed the configuration key `messages.prefix` from `config/cleaner.yml`. No code ever read it
-  — every cleanup message already carries its own prefix — so an operator who edited it was
-  editing nothing. The prefix text lives in this module's language catalogue instead, at the head
-  of each translated message (`&a[Cleaner]` in `lang/en.yml`, `&a[清理]` in `lang/zh.yml`), so it
-  follows the server's `language` setting. The key stays in your existing file and is now ignored;
-  the module logs one warning about it at startup (UltiKits/UltiCleaner#18).
+- Removed the configuration key `messages.prefix` from `config/cleaner.yml`. No code ever read it, so
+  no message was ever prefixed from it and nothing you see changes. The prefix in a cleanup broadcast
+  is part of that broadcast's own text — the seven other `messages.*` keys in the same file, each
+  still read from the configuration and each still carrying its own `[清理]` tag — so to change a
+  prefix, edit the message it belongs to. Making these broadcasts follow the server's `language`
+  setting is separate, still outstanding work (UltiKits/UltiCleaner#17). The removed key stays in
+  your existing file and is now ignored; the module logs one warning about it at startup
+  (UltiKits/UltiCleaner#18).
 - 移除了本模块自身的"UltiCleaner 已禁用！"控制台日志行及其 `cleaner_disabled` 语言键；
   打印该行的卸载覆写方法没有其他工作，因此直接删除，而非迁移到新的卸载钩子。
 - **完整移除区块卸载功能。** 服务端引擎本身已经会卸载闲置区块，因此这个功能唯一够得着的，恰好是服务端
@@ -92,7 +94,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - `/clean check` 的「可卸载区块」一行，以及 `chunk_unloaded`、`cmd_help_chunks`、
     `stats_chunks_unloadable` 三个语言键。
   `/clean check` 的「已加载区块」一行保留：它是一项普通的服务器统计数字，不是该功能的读数。
-- 移除了 `config/cleaner.yml` 中的配置项 `messages.prefix`。此前没有任何代码读取它——每条清理消息本身
-  就带有自己的前缀——因此运维改它等于什么也没改。前缀文本改由本模块的语言目录承载，位于每条已翻译消息的
-  开头（`lang/en.yml` 中为 `&a[Cleaner]`，`lang/zh.yml` 中为 `&a[清理]`），因此会跟随服务器的 `language`
-  设置。该键仍留在你现有的配置文件里，但已不再生效；模块启动时会为它记一条警告（UltiKits/UltiCleaner#18）。
+- 移除了 `config/cleaner.yml` 中的配置项 `messages.prefix`。此前没有任何代码读取它，因此从来没有任何消息
+  用过它作前缀，删除它不会改变你看到的任何内容。清理广播里的前缀是那条广播自身文本的一部分——即同一文件中
+  另外七个 `messages.*` 键，它们仍然从配置读取，也仍然各自带着自己的 `[清理]` 标记——所以要改前缀，就去改
+  它所属的那条消息。让这些广播跟随服务器的 `language` 设置是另一项尚未完成的工作
+  （UltiKits/UltiCleaner#17）。被删除的键仍留在你现有的配置文件里，但已不再生效；模块启动时会为它记一条警告
+  （UltiKits/UltiCleaner#18）。
