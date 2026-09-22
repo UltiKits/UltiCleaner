@@ -146,6 +146,11 @@ public class CleanerListener implements Listener {
 | `PreEntityCleanEvent` | 实体清理前 | ✅ |
 | `CleanCompleteEvent` | 清理完成后 | ❌ |
 
+> **注意** `CleanCompleteEvent.CleanType` 的四个常量中有两个从不会被构造，为它们写的 `switch` 分支永远不会执行：
+> `CHUNKS`（区块卸载功能已整体移除，见 `UltiKits/UltiCleaner#27`，因此它已不可能再被构造）与
+> `ALL`（`/clean all` 会先后触发 `ITEMS` 与 `ENTITIES` 两个事件，不会构造 `ALL`）。
+> 两者由 `UltiKits/UltiCleaner#16` 跟踪。
+
 ## 🆚 与旧版对比
 
 | 功能 | UltiCleaner 2.0 | 旧版 UltiTools |

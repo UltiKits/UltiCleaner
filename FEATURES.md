@@ -111,6 +111,16 @@ lifecycle-hook override under `## Lifecycle Hooks`, which is not a Bukkit event)
 own stated reason above) — each is instead documented in prose within the `## Automatic Cleanup`
 row of the method that fires it, Source-cited as `TriggeringMethod (fires EventClassName)`.
 
+**Two of `CleanCompleteEvent.CleanType`'s four constants are never constructed**, so a listener's
+`switch` arm for either can never execute. `CleanType.ALL` is never constructed because `/clean all`
+runs an item cleanup and an entity cleanup in succession, each firing its own event with its own
+type. `CleanType.CHUNKS` was never constructed either, and is now **permanently unconstructible**:
+the chunk-unload feature that was its only conceivable producer was removed from this module
+(`UltiKits/UltiCleaner#27`). Both are tracked by `UltiKits/UltiCleaner#16`, which owns the decision
+about removing them — the constants are left in place here because removing one from a published
+enum is that issue's call, not this change's. This paragraph replaces the same statement that used
+to live in the deleted `ulticleaner.scheduled.chunk-unload` row.
+
 ## Commands
 
 `CleanCommand` — class-level `@CmdExecutor(alias = {"clean", "cleaner", "clear"}, permission =

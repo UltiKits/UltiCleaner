@@ -76,7 +76,6 @@ public class CleanCommand extends BaseCommandExecutor {
         
         sender.sendMessage(ChatColor.YELLOW + "已加载区块: " + ChatColor.WHITE + cleanerService.getTotalLoadedChunks());
         
-        
         TpsAwareScheduler tpsScheduler = cleanerService.getTpsScheduler();
         if (tpsScheduler != null) {
             sender.sendMessage(ChatColor.YELLOW + "服务器TPS: " + tpsScheduler.getTpsStatus());

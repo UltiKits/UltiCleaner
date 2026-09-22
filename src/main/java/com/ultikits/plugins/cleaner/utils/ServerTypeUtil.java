@@ -121,7 +121,7 @@ public final class ServerTypeUtil {
         // Fallback: sync loading wrapped in CompletableFuture
         return CompletableFuture.completedFuture(world.getChunkAt(x, z));
     }
-        
+    
     /**
      * Get server software name for logging.
      * 
