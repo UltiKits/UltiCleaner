@@ -2107,4 +2107,28 @@ class CleanerServiceTest {
             verify(player2).sendMessage(anyString());
         }
     }
+
+    @Nested
+    @DisplayName("getTotalLoadedChunks")
+    class GetTotalLoadedChunks {
+
+        @Test
+        @DisplayName("Should sum the loaded chunks of every world (UltiKits/UltiCleaner#23)")
+        void sumsEveryWorld() {
+            World overworld = UltiCleanerTestHelper.createMockWorld("world");
+            World nether = UltiCleanerTestHelper.createMockWorld("world_nether");
+            when(overworld.getLoadedChunks()).thenReturn(new org.bukkit.Chunk[49]);
+            when(nether.getLoadedChunks()).thenReturn(new org.bukkit.Chunk[98]);
+            UltiCleanerTestHelper.addMockWorld(overworld);
+            UltiCleanerTestHelper.addMockWorld(nether);
+
+            assertThat(service.getTotalLoadedChunks()).isEqualTo(147);
+        }
+
+        @Test
+        @DisplayName("Should report zero when no world is loaded")
+        void zeroWithoutWorlds() {
+            assertThat(service.getTotalLoadedChunks()).isZero();
+        }
+    }
 }

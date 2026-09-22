@@ -122,7 +122,6 @@ public final class UltiCleanerTestHelper {
             setStaticField(serverTypeUtil, "isPaper", null);
             setStaticField(serverTypeUtil, "isModernPaper", null);
             setStaticField(serverTypeUtil, "getChunkAtAsyncMethod", null);
-            setStaticField(serverTypeUtil, "isEntitiesLoadedMethod", null);
         } catch (Exception e) {
             // Ignore if class or field not found
         }
@@ -170,9 +169,6 @@ public final class UltiCleanerTestHelper {
         lenient().when(config.getCleanBatchSize()).thenReturn(50);
         lenient().when(config.isShowCleanProgress()).thenReturn(false);
         lenient().when(config.isTpsAdaptiveEnabled()).thenReturn(true);
-        lenient().when(config.isChunkUnloadEnabled()).thenReturn(false);
-        lenient().when(config.getMaxChunkDistance()).thenReturn(20);
-        lenient().when(config.getChunkUnloadBatchSize()).thenReturn(5);
 
         // Mock message methods
         lenient().when(config.getItemCleanedMessage()).thenReturn("&a[Clean] Cleaned {COUNT} items");

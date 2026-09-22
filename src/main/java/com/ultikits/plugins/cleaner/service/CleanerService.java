@@ -583,6 +583,23 @@ public class CleanerService {
     }
     
     /**
+     * Get the total number of loaded chunks across every world.
+     * <p>
+     * A plain server statistic printed by {@code /clean check}, unrelated to any cleanup this
+     * module performs. It lived on the chunk-unload service until that feature was removed
+     * (UltiKits/UltiCleaner#27).
+     *
+     * @return the number of loaded chunks, summed over every world
+     */
+    public int getTotalLoadedChunks() {
+        int total = 0;
+        for (World world : Bukkit.getWorlds()) {
+            total += world.getLoadedChunks().length;
+        }
+        return total;
+    }
+    
+    /**
      * Check if cleanup is currently in progress.
      */
     public boolean isCleaningInProgress() {

@@ -90,20 +90,6 @@ class CleanerConfigTest {
         }
 
         @Test
-        @DisplayName("Should have chunk unload disabled by default")
-        void chunkUnloadEnabled() {
-            CleanerConfig config = createRealConfig();
-            assertThat(config.isChunkUnloadEnabled()).isFalse();
-        }
-
-        @Test
-        @DisplayName("Should have max chunk distance of 20")
-        void maxChunkDistance() {
-            CleanerConfig config = createRealConfig();
-            assertThat(config.getMaxChunkDistance()).isEqualTo(20);
-        }
-
-        @Test
         @DisplayName("Should have item whitelist with default values")
         void itemWhitelist() {
             CleanerConfig config = createRealConfig();
@@ -170,14 +156,6 @@ class CleanerConfigTest {
             CleanerConfig config = createRealConfig();
             config.setTpsAdaptiveEnabled(false);
             assertThat(config.isTpsAdaptiveEnabled()).isFalse();
-        }
-
-        @Test
-        @DisplayName("Should update chunk unload enabled")
-        void setChunkUnloadEnabled() {
-            CleanerConfig config = createRealConfig();
-            config.setChunkUnloadEnabled(true);
-            assertThat(config.isChunkUnloadEnabled()).isTrue();
         }
     }
 
@@ -261,20 +239,6 @@ class CleanerConfigTest {
         void criticalTpsReduction() {
             CleanerConfig config = createRealConfig();
             assertThat(config.getCriticalTpsReduction()).isEqualTo(50);
-        }
-
-        @Test
-        @DisplayName("Should have chunk unload batch size of 5")
-        void chunkUnloadBatchSize() {
-            CleanerConfig config = createRealConfig();
-            assertThat(config.getChunkUnloadBatchSize()).isEqualTo(5);
-        }
-
-        @Test
-        @DisplayName("Should have chunk unload timeout of 5")
-        void chunkUnloadTimeout() {
-            CleanerConfig config = createRealConfig();
-            assertThat(config.getChunkUnloadTimeout()).isEqualTo(5);
         }
 
         @Test
@@ -480,30 +444,6 @@ class CleanerConfigTest {
             CleanerConfig config = createRealConfig();
             config.setCriticalTpsReduction(60);
             assertThat(config.getCriticalTpsReduction()).isEqualTo(60);
-        }
-
-        @Test
-        @DisplayName("Should update max chunk distance")
-        void setMaxChunkDistance() {
-            CleanerConfig config = createRealConfig();
-            config.setMaxChunkDistance(30);
-            assertThat(config.getMaxChunkDistance()).isEqualTo(30);
-        }
-
-        @Test
-        @DisplayName("Should update chunk unload batch size")
-        void setChunkUnloadBatchSize() {
-            CleanerConfig config = createRealConfig();
-            config.setChunkUnloadBatchSize(10);
-            assertThat(config.getChunkUnloadBatchSize()).isEqualTo(10);
-        }
-
-        @Test
-        @DisplayName("Should update chunk unload timeout")
-        void setChunkUnloadTimeout() {
-            CleanerConfig config = createRealConfig();
-            config.setChunkUnloadTimeout(10);
-            assertThat(config.getChunkUnloadTimeout()).isEqualTo(10);
         }
 
         @Test

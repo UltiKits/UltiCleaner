@@ -1,7 +1,6 @@
 package com.ultikits.plugins.cleaner.commands;
 
 import com.ultikits.plugins.cleaner.UltiCleanerTestHelper;
-import com.ultikits.plugins.cleaner.service.ChunkUnloadService;
 import com.ultikits.plugins.cleaner.service.CleanerService;
 import com.ultikits.plugins.cleaner.service.TpsAwareScheduler;
 
@@ -21,7 +20,6 @@ import static org.mockito.Mockito.*;
 class CleanCommandTest {
 
     private CleanerService cleanerService;
-    private ChunkUnloadService chunkUnloadService;
     private TpsAwareScheduler tpsScheduler;
     private CleanCommand command;
     private Player player;
@@ -31,10 +29,9 @@ class CleanCommandTest {
     void setUp() throws Exception {
         UltiCleanerTestHelper.setUp();
         cleanerService = mock(CleanerService.class);
-        chunkUnloadService = mock(ChunkUnloadService.class);
         tpsScheduler = mock(TpsAwareScheduler.class);
 
-        command = new CleanCommand(cleanerService, chunkUnloadService);
+        command = new CleanCommand(cleanerService);
 
         player = UltiCleanerTestHelper.createMockPlayer("TestPlayer", UUID.randomUUID());
         sender = mock(CommandSender.class);
@@ -139,31 +136,31 @@ class CleanCommandTest {
         }
     }
 
-    // ==================== cleanChunks ====================
+    // ==================== no chunk sub-command ====================
 
     @Nested
-    @DisplayName("cleanChunks")
-    class CleanChunks {
+    @DisplayName("chunk unloading is removed")
+    class ChunkUnloadingRemoved {
 
         @Test
-        @DisplayName("Should clean chunks when service available")
-        void cleanChunks() {
-            when(chunkUnloadService.forceUnloadChunks()).thenReturn(10);
-
-            command.cleanChunks(sender);
-
-            verify(chunkUnloadService).forceUnloadChunks();
-            verify(sender).sendMessage(anyString());
+        @DisplayName("CleanCommand declares no chunks sub-command (UltiKits/UltiCleaner#23, #20)")
+        void noChunksMapping() {
+            // Positive control: the mappings this command still declares ARE found by this
+            // query, so an empty result for "chunks" means removed, not "the query is blind".
+            assertThat(mappedFormats()).contains("items", "entities", "all", "check", "status");
+            assertThat(mappedFormats()).doesNotContain("chunks");
         }
 
-        @Test
-        @DisplayName("Should show error when service not available")
-        void serviceNotAvailable() {
-            CleanCommand commandWithoutChunks = new CleanCommand(cleanerService, null);
-
-            commandWithoutChunks.cleanChunks(sender);
-
-            verify(sender).sendMessage(anyString());
+        private java.util.List<String> mappedFormats() {
+            java.util.List<String> formats = new java.util.ArrayList<>();
+            for (java.lang.reflect.Method method : CleanCommand.class.getDeclaredMethods()) {
+                com.ultikits.ultitools.annotations.command.CmdMapping mapping =
+                        method.getAnnotation(com.ultikits.ultitools.annotations.command.CmdMapping.class);
+                if (mapping != null) {
+                    formats.add(mapping.format());
+                }
+            }
+            return formats;
         }
     }
 
@@ -182,8 +179,7 @@ class CleanCommandTest {
             counts.put("total", 200);
 
             when(cleanerService.getEntityCounts()).thenReturn(counts);
-            when(chunkUnloadService.getTotalLoadedChunks()).thenReturn(500);
-            when(chunkUnloadService.getUnloadableChunkCount()).thenReturn(50);
+            when(cleanerService.getTotalLoadedChunks()).thenReturn(500);
             when(tpsScheduler.getTpsStatus()).thenReturn("20.0 (Normal)");
 
             command.check(sender);
@@ -192,20 +188,23 @@ class CleanCommandTest {
         }
 
         @Test
-        @DisplayName("Should work without chunk service")
-        void withoutChunkService() {
-            CleanCommand commandWithoutChunks = new CleanCommand(cleanerService, null);
+        @DisplayName("Should still print the loaded-chunk statistic, and no unloadable-chunk line (UltiKits/UltiCleaner#23)")
+        void printsLoadedChunksButNotUnloadable() {
             Map<String, Integer> counts = new HashMap<>();
             counts.put("items", 100);
             counts.put("mobs", 50);
             counts.put("total", 200);
 
             when(cleanerService.getEntityCounts()).thenReturn(counts);
+            when(cleanerService.getTotalLoadedChunks()).thenReturn(147);
             when(tpsScheduler.getTpsStatus()).thenReturn("20.0 (Normal)");
 
-            commandWithoutChunks.check(sender);
+            command.check(sender);
 
-            verify(sender, atLeast(3)).sendMessage(anyString());
+            org.mockito.ArgumentCaptor<String> lines = org.mockito.ArgumentCaptor.forClass(String.class);
+            verify(sender, atLeast(5)).sendMessage(lines.capture());
+            assertThat(lines.getAllValues()).anySatisfy(line -> assertThat(line).contains("147"));
+            assertThat(lines.getAllValues()).noneSatisfy(line -> assertThat(line).contains("可卸载"));
         }
     }
 
@@ -283,11 +282,14 @@ class CleanCommandTest {
     class Help {
 
         @Test
-        @DisplayName("Should display help message")
+        @DisplayName("Should display help message without a chunks line (UltiKits/UltiCleaner#23)")
         void displayHelp() {
             command.help(sender);
 
-            verify(sender, atLeast(6)).sendMessage(anyString());
+            org.mockito.ArgumentCaptor<String> lines = org.mockito.ArgumentCaptor.forClass(String.class);
+            verify(sender, atLeast(6)).sendMessage(lines.capture());
+            assertThat(lines.getAllValues()).anySatisfy(line -> assertThat(line).contains("/clean items"));
+            assertThat(lines.getAllValues()).noneSatisfy(line -> assertThat(line).contains("/clean chunks"));
         }
     }
 
@@ -344,8 +346,7 @@ class CleanCommandTest {
             when(cleanerService.getEntityCounts()).thenReturn(counts);
             when(cleanerService.getTpsScheduler()).thenReturn(null);
 
-            CleanCommand cmdWithoutChunks = new CleanCommand(cleanerService, null);
-            cmdWithoutChunks.check(sender);
+            command.check(sender);
 
             // Should display header + items + mobs + total
             verify(sender, atLeast(4)).sendMessage(anyString());

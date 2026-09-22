@@ -1,6 +1,6 @@
 # UltiCleaner
 
-**高性能 Minecraft 服务器清理插件** - 自动清理地面物品、实体和闲置区块，支持智能清理、TPS 自适应和分批处理。
+**高性能 Minecraft 服务器清理插件** - 自动清理地面物品和实体，支持智能清理、TPS 自适应和分批处理。
 
 [![Java](https://img.shields.io/badge/Java-8+-orange.svg)](https://www.oracle.com/java/)
 [![Spigot](https://img.shields.io/badge/Spigot-1.13--1.21-yellow.svg)](https://www.spigotmc.org/)
@@ -11,7 +11,6 @@
 ### 🧹 基础清理功能
 - **物品清理** - 定时清理地面掉落物，支持白名单和新掉落物保护
 - **实体清理** - 定时清理指定类型的生物，保护命名/拴绳/驯服实体
-- **区块卸载** - 自动卸载远离玩家的闲置区块，释放服务器内存
 
 ### 🧠 智能清理系统
 
@@ -28,7 +27,7 @@
 - **Paper 兼容** - 自动检测 Paper 服务器，使用优化 API
 
 ### 🔌 扩展性
-- **自定义事件** - 提供 `PreItemCleanEvent`、`PreEntityCleanEvent`、`PreChunkUnloadEvent` 和 `CleanCompleteEvent`
+- **自定义事件** - 提供 `PreItemCleanEvent`、`PreEntityCleanEvent` 和 `CleanCompleteEvent`
 - **可取消清理** - 其他插件可监听事件并取消特定清理操作
 - **统计回调** - 清理完成后触发事件，包含清理数量和耗时
 
@@ -46,7 +45,6 @@
 | `/clean items` | `ulticleaner.clean` | 立即清理地面物品 |
 | `/clean entities` | `ulticleaner.clean` | 立即清理实体 |
 | `/clean all` | `ulticleaner.clean` | 清理所有物品和实体 |
-| `/clean chunks` | `ulticleaner.clean` | 卸载闲置区块 |
 | `/clean check` | `ulticleaner.clean` | 查看服务器实体统计 |
 | `/clean status` | `ulticleaner.clean` | 查看清理状态和倒计时 |
 
@@ -99,13 +97,6 @@ tps:
   low-reduction: 30                # 低TPS阈值降低百分比
   critical-reduction: 50           # 严重低TPS阈值降低百分比
 
-# ============ 区块卸载 ============
-chunk:
-  enabled: false                   # 启用区块卸载
-  max-distance: 20                 # 最大区块距离
-  batch-size: 5                    # 每tick卸载数量
-  timeout: 5                       # 异步超时（秒）
-
 # ============ 世界设置 ============
 worlds:
   blacklist:                       # 不进行清理的世界
@@ -153,7 +144,6 @@ public class CleanerListener implements Listener {
 |------|----------|--------|
 | `PreItemCleanEvent` | 物品清理前 | ✅ |
 | `PreEntityCleanEvent` | 实体清理前 | ✅ |
-| `PreChunkUnloadEvent` | 区块卸载前 | ✅ |
 | `CleanCompleteEvent` | 清理完成后 | ❌ |
 
 ## 🆚 与旧版对比
@@ -163,7 +153,6 @@ public class CleanerListener implements Listener {
 | 物品清理 | ✅ | ✅ |
 | 实体清理 | ✅ | ✅ |
 | 智能清理 | ✅ | ✅ |
-| 区块卸载 | ✅ | ✅ |
 | **分批处理** | ✅ | ❌ |
 | **TPS 自适应** | ✅ | ❌ |
 | **自定义事件** | ✅ | ❌ |
@@ -181,8 +170,6 @@ item:
   interval: 600        # 10分钟清理一次
 smart:
   enabled: false       # 关闭智能清理
-chunk:
-  enabled: false       # 关闭区块卸载
 ```
 
 ### 中型服务器 (20-100 玩家)
@@ -208,9 +195,6 @@ smart:
 tps:
   adaptive-enabled: true
   low-threshold: 19.0   # 更敏感的TPS检测
-chunk:
-  enabled: true
-  max-distance: 15      # 更积极的区块卸载
 ```
 
 ## 🐛 问题反馈
