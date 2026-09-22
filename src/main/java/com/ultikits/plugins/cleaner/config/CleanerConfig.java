@@ -144,10 +144,6 @@ public class CleanerConfig extends AbstractConfigEntity {
     
     // ============ Messages ============
     @NotEmpty
-    @ConfigEntry(path = "messages.prefix", comment = "消息前缀（清道夫名称）")
-    private String messagePrefix = "&a[清理]";
-
-    @NotEmpty
     @ConfigEntry(path = "messages.warn", comment = "清理警告消息 ({TIME}为剩余秒数)")
     private String warnMessage = "&c[清理] &f地面物品将在 &e{TIME} &f秒后清理！";
 

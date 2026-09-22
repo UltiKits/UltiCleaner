@@ -34,9 +34,10 @@ for real-machine verification, not user-facing documentation.
   none is currently affected; the convention is stated here for template consistency.
 - **Expected** must name an observable truth — an exact chat line, a log line, a database row,
   an inventory slot — and never the words "it works". Where `FEATURES.md` documents a key or task
-  as having no observable effect (`messages.prefix`, `tps-fallback` on Paper), the corresponding
+  as having no observable effect (`tps-fallback` on Paper), the corresponding
   Expected states that absence explicitly, as its own observable claim, rather than being silently
-  skipped.
+  skipped. `messages.prefix` used to be the other example here; it was deleted rather than wired
+  (`UltiKits/UltiCleaner#18`), so it is no longer a key with no effect — it is no longer a key.
 - **Covers** back-references a Phase 9 GUI-excluded class name; left blank when no such class
   applies. This repository has NO entry in `.planning/phases/09-module-ecosystem-readiness-and-
   test-coverage/gui-exclusions/` at all (it ships no GUI page of any generation), so every row's
@@ -86,15 +87,14 @@ for real-machine verification, not user-facing documentation.
 ## Configuration
 
 One row per `@ConfigEntity` class (D-06's config-per-file rule), not per key: `CleanerConfig`
-(`config/cleaner.yml`, 34 keys), matching `FEATURES.md`'s `## Configuration` section exactly.
-This row confirms every key is present at its documented default, then flips one representative
-interval-style key and observes the behaviour follow — **except `messages.prefix`, which
-`FEATURES.md` documents as having no observable effect (`UltiKits/UltiCleaner#18`)**, which this
-row deliberately does NOT attempt to exercise for an effect.
+(`config/cleaner.yml`, 33 keys), matching `FEATURES.md`'s `## Configuration` section exactly.
+This row confirms every key is present at its documented default, confirms that the five keys this
+version removed are absent from a freshly written file, then flips one representative
+interval-style key and observes the behaviour follow.
 
 | ID | Preconditions | Steps | Expected | Layer | Covers |
 |---|---|---|---|---|---|
-| ulticleaner.config.cleaner-yml | Fresh `config/cleaner.yml` at its shipped default | Load the file; confirm all 34 keys listed under `FEATURES.md`'s `## Configuration` section are present at their documented defaults; then RESTART THE SERVER COMPLETELY (a full restart rather than `/ul reload UltiCleaner`, so that this row proves the value is read at boot; the reload path is proven separately by the row under `## Lifecycle Hooks` at the end of this file) and set `item.interval: 15` (default 300) before the restart, then repeat `ulticleaner.scheduled.item-tick` above, confirming the item cleanup now fires around 15 seconds later rather than 300. Do NOT vary `messages.prefix` expecting an observable effect — it has none (see its own `FEATURES.md` row and `UltiKits/UltiCleaner#18`) | All 34 keys present at their documented defaults before the change; after lowering `item.interval` to 15, the scheduled item cleanup fires (warning broadcasts, then removal) around 15 seconds later rather than 300, proving the lowered value took effect | server | |
+| ulticleaner.config.cleaner-yml | Fresh `config/cleaner.yml`, written by this version from its declared defaults (delete any existing file first, so the framework writes a new one) | Load the file; confirm all 33 keys listed under `FEATURES.md`'s `## Configuration` section are present at their documented defaults, and that `messages.prefix`, `chunk.enabled`, `chunk.max-distance`, `chunk.batch-size` and `chunk.timeout` are absent; then RESTART THE SERVER COMPLETELY (a full restart rather than `/ul reload UltiCleaner`, so that this row proves the value is read at boot; the reload path is proven separately by the row under `## Lifecycle Hooks` at the end of this file) and set `item.interval: 15` (default 300) before the restart, then repeat `ulticleaner.scheduled.item-tick` above, confirming the item cleanup now fires around 15 seconds later rather than 300 | All 33 keys present at their documented defaults before the change, and none of the five removed keys written into the fresh file; after lowering `item.interval` to 15, the scheduled item cleanup fires (warning broadcasts, then removal) around 15 seconds later rather than 300, proving the lowered value took effect | server | |
 
 ## Lifecycle Hooks
 

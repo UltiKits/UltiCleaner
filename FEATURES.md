@@ -46,7 +46,7 @@ for UAT execution and issue reconciliation — the public description of these f
   sites declares its own method-level `permission()`, so every command row below carries the
   single node `ulticleaner.clean`.
 - **Source:** `ClassName#member` — the class and member that actually reads or applies the
-  feature — for every Kind, `config` included: all 34 `config` rows below cite the reading
+  feature — for every Kind, `config` included: all 33 `config` rows below cite the reading
   member, or the config class's own field declaration when no reading member exists anywhere in
   this module's source.
 - **Row order:** by section, then by ID ascending within the section.
@@ -88,9 +88,9 @@ regardless so the same command works unmodified across all 18 repositories.
 
 **Positive control:** the line-start form returns `@CmdExecutor` = 1, `@CmdMapping` = 6,
 `@EventListener` = 0, `@EventHandler` = 0, `@Scheduled` = 4, `@ConditionalOnConfig` = 0,
-`@ConfigEntity` = 1 (class), `@ConfigEntry` = 34, `@Table` = 0 — confirmed by reading
+`@ConfigEntity` = 1 (class), `@ConfigEntry` = 33, `@Table` = 0 — confirmed by reading
 `CleanCommand.java` directly (6 `@CmdMapping` sites: `items`, `entities`, `all`,
-`check`, `status`, bare `""`) and `CleanerConfig.java` directly (34 `@ConfigEntry` fields across
+`check`, `status`, bare `""`) and `CleanerConfig.java` directly (33 `@ConfigEntry` fields across
 item/entity/world/smart/batch/tps/messages sections). `checkSmartClean` (line 122,
 `@Scheduled(period = 100, async = false)`) is this module's standing positive control for the
 `@Scheduled` count — its 5-second period is easy to conflate with `tickItemClean`/
@@ -140,8 +140,8 @@ Four `@Scheduled` methods, none gated by `@ConditionalOnConfig` — each checks 
 ## Configuration
 
 Every `@ConfigEntry`-annotated field on this module's one `@ConfigEntity` class, `CleanerConfig`
-(`config/cleaner.yml`, 34 keys total — matching the reconciliation table's own `@ConfigEntry`
-count of 34 exactly).
+(`config/cleaner.yml`, 33 keys total — matching the reconciliation table's own `@ConfigEntry`
+count of 33 exactly).
 
 | ID | Feature | Kind | How to reach | Permission | Target | Tier | Manual | Source |
 |---|---|---|---|---|---|---|---|---|
@@ -165,7 +165,6 @@ count of 34 exactly).
 | ulticleaner.config.cleaner.messages.entity-cleaned | Message broadcast (to all players) when a scheduled/manual/smart entity cleanup removes at least one entity, with a `{COUNT}` placeholder | config | `config/cleaner.yml: messages.entity-cleaned (default: a Chinese-language template meaning "Cleaned {COUNT} entities!")` | n/a | n/a | admin | brief | CleanerService#broadcastEntityCleaned |
 | ulticleaner.config.cleaner.messages.entity-warn | Warning message broadcast at each `entity.warn-times` countdown mark, with a `{TIME}` placeholder | config | `config/cleaner.yml: messages.entity-warn (default: a Chinese-language template meaning "Entities will be cleaned in {TIME} seconds!")` | n/a | n/a | admin | brief | CleanerService#broadcastEntityWarn |
 | ulticleaner.config.cleaner.messages.item-cleaned | Message broadcast (to all players) when a scheduled/manual/smart item cleanup completes, with a `{COUNT}` placeholder — unlike the entity variant, this one broadcasts even when `{COUNT}` is `0` | config | `config/cleaner.yml: messages.item-cleaned (default: a Chinese-language template meaning "Cleaned {COUNT} ground items!")` | n/a | n/a | admin | brief | CleanerService#broadcastItemCleaned |
-| ulticleaner.config.cleaner.messages.prefix | Declared as the message prefix ("cleaner name") shown before every broadcast; no code anywhere in this module reads `getMessagePrefix()` — every broadcast message already carries its own hardcoded prefix text inline (a green- or red-colored Chinese bracketed tag meaning "[Cleaner]"), so this key has no effect. Known product defect, `UltiKits/UltiCleaner#18` | config | `config/cleaner.yml: messages.prefix (default: a Chinese-language bracketed tag meaning "[Cleaner]", has no effect, see UltiKits/UltiCleaner#18)` | n/a | n/a | admin | brief | CleanerConfig#messagePrefix (declared, never read outside this class) |
 | ulticleaner.config.cleaner.messages.smart-triggered | Message broadcast the instant smart cleanup triggers (before the actual item/entity removal begins) | config | `config/cleaner.yml: messages.smart-triggered (default: a Chinese-language message meaning "Detected too many entities, initiating smart cleanup...")` | n/a | n/a | admin | brief | CleanerService#checkSmartClean |
 | ulticleaner.config.cleaner.messages.warn | Warning message broadcast at each `item.warn-times` countdown mark, with a `{TIME}` placeholder | config | `config/cleaner.yml: messages.warn (default: a Chinese-language template meaning "Ground items will be cleaned in {TIME} seconds!")` | n/a | n/a | admin | brief | CleanerService#broadcastWarn |
 | ulticleaner.config.cleaner.smart.cooldown | Minimum seconds between two smart-cleanup triggers, counted from the previous trigger's own start time | config | `config/cleaner.yml: smart.cooldown (default: 60)` | n/a | n/a | admin | brief | CleanerService#checkSmartClean |
