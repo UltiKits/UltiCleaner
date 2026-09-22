@@ -23,6 +23,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - 执行 `/upm uninstall UltiCleaner` 后，本模块的 `/clean` 命令现在会被真正移除。此前本模块用一个只打印
   日志的方法替换了框架的卸载方法，因此该命令会一直保持生效，直到服务器重启（UltiKits/UltiCleaner#14）。
 
+- `/clean status` now names the TPS threshold reduction actually configured in
+  `tps.low-reduction` and `tps.critical-reduction`. Previously the warning line printed a fixed
+  "30%" and "50%" whatever those keys were set to, so an operator who had raised either one was
+  shown a number the module was not applying (UltiKits/UltiCleaner#21).
+- `/clean status` 现在会显示 `tps.low-reduction`、`tps.critical-reduction` 中实际配置的 TPS 阈值降低百分比。
+  此前那行警告无论这两个键被改成什么，都固定显示「30%」和「50%」，因此调高过任一项的运维看到的是一个
+  模块并未在使用的数字（UltiKits/UltiCleaner#21）。
+
 ### Removed
 
 - Removed the module's own "UltiCleaner has been disabled!" console line and its

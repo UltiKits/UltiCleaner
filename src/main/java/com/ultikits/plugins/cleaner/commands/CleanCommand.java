@@ -1,5 +1,6 @@
 package com.ultikits.plugins.cleaner.commands;
 
+import com.ultikits.plugins.cleaner.config.CleanerConfig;
 import com.ultikits.plugins.cleaner.service.CleanerService;
 import com.ultikits.plugins.cleaner.service.TpsAwareScheduler;
 import com.ultikits.ultitools.abstracts.command.BaseCommandExecutor;
@@ -26,9 +27,11 @@ import java.util.Map;
 public class CleanCommand extends BaseCommandExecutor {
     
     private final CleanerService cleanerService;
+    private final CleanerConfig config;
     
-    public CleanCommand(CleanerService cleanerService) {
+    public CleanCommand(CleanerService cleanerService, CleanerConfig config) {
         this.cleanerService = cleanerService;
+        this.config = config;
     }
     
     @CmdMapping(format = "items")
@@ -96,9 +99,11 @@ public class CleanCommand extends BaseCommandExecutor {
         if (tpsScheduler != null) {
             sender.sendMessage(ChatColor.YELLOW + "TPS: " + tpsScheduler.getTpsStatus());
             if (tpsScheduler.isCriticalTps()) {
-                sender.sendMessage(ChatColor.RED + "⚠ TPS严重过低，智能清理阈值已降低50%");
+                sender.sendMessage(ChatColor.RED + "⚠ TPS严重过低，智能清理阈值已降低"
+                        + config.getCriticalTpsReduction() + "%");
             } else if (tpsScheduler.isLowTps()) {
-                sender.sendMessage(ChatColor.YELLOW + "⚠ TPS较低，智能清理阈值已降低30%");
+                sender.sendMessage(ChatColor.YELLOW + "⚠ TPS较低，智能清理阈值已降低"
+                        + config.getLowTpsReduction() + "%");
             }
         }
     }
