@@ -23,11 +23,12 @@ for UAT execution and issue reconciliation — the public description of these f
   This module has 0 `@EventListener` classes and 0 `@EventHandler` methods — it drives everything
   from its own four `@Scheduled` tasks, never from a Bukkit event this module itself listens for —
   so no `event` row is backed by a listener annotation site and the `@EventListener`
-  reconciliation line below stays 0 against 0. It carries exactly one `event`-Kind row,
-  `ulticleaner.lifecycle.reload` in `## Lifecycle Hooks` below: `onReload()` is a callback the
-  framework invokes, not a command this module maps or a config key it reads, and it is reached by
-  overriding a framework method rather than through an annotation site, so no reconciliation line
-  counts it. This module has no `gui` rows (no GUI page class), no `placeholder` rows (no
+  reconciliation line below stays 0 against 0. It carries exactly two `event`-Kind rows, both in
+  `## Lifecycle Hooks` below: `ulticleaner.lifecycle.reload` and
+  `ulticleaner.lifecycle.removed-key-warning`. Both are driven from callbacks the framework
+  invokes (`registerSelf()` and `onReload()`), not from a command this module maps or a config key
+  it reads, and both are reached by overriding a framework method rather than through an
+  annotation site, so no reconciliation line counts either. This module has no `gui` rows (no GUI page class), no `placeholder` rows (no
   `PlaceholderExpansion`), no `persistence` rows (no `@Table` entity — every state this module
   keeps is either transient runtime state or the `config/cleaner.yml` file itself), and no `gate`
   rows (0 `@ConditionalOnConfig` sites). All four stay in the vocabulary for cross-repository
@@ -194,6 +195,12 @@ module overrode `reloadSelf()` itself, so neither the config re-read nor the lan
 module declares no `onUnregister()` override: its former unload override only logged a
 "disabled" line, and it was deleted along with the `cleaner_disabled` language key.
 
+`UltiCleaner#registerSelf()` is the other framework-invoked callback with a row below. Besides
+initialising the services, it runs the removed-key check: this version deleted five configuration
+keys, and those keys are still in every existing operator's `config/cleaner.yml`, because the
+framework writes a declared default only for a key that is *missing* and never removes one.
+
 | ID | Feature | Kind | How to reach | Permission | Target | Tier | Manual | Source |
 |---|---|---|---|---|---|---|---|---|
+| ulticleaner.lifecycle.removed-key-warning | On module enable and again on every `/ul reload`, read the operator's own `config/cleaner.yml` and log one WARNING per key this version no longer reads but which is still present in that file — `messages.prefix`, `chunk.enabled`, `chunk.max-distance`, `chunk.batch-size`, `chunk.timeout`. Each warning names the module, the file's path and the key, says the key no longer has any effect, says where the setting went (the language catalogue for `messages.prefix`; nowhere, for the four chunk keys, since that feature was removed), and tells the operator to delete the key to silence it. Nothing is logged when the file holds none of them, when the file is absent, or when it cannot be parsed — the framework's own config loading already reports an unparseable file, and a second message would only add noise. Deleting a key from `CleanerConfig` stops the framework WRITING it into a fresh file but does nothing to files already on disk: the framework writes a declared default only for a key that is missing, so an existing install keeps the key, keeps its value, and would otherwise get no indication the value stopped meaning anything | event | automatic, at module enable and at `/ul reload UltiCleaner` | n/a | n/a | admin | brief | UltiCleaner#registerSelf, UltiCleaner#onReload, RemovedConfigKeys#warnAboutLeftovers |
 | ulticleaner.lifecycle.reload | Rebuild `CleanerService`'s item-whitelist, entity-type and world-blacklist caches from the just-reloaded `config/cleaner.yml`, reset both the item and the entity cleanup countdowns to the reloaded `item.interval` and `entity.interval` values, and log the module's own `cleaner_reloaded` line, after the framework has already re-read the config file | event | `/ul reload UltiCleaner` (framework calls `reloadSelf()`, which runs its own steps first, then invokes this hook) | n/a | n/a | admin | brief | UltiCleaner#onReload, CleanerService#reload |

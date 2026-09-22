@@ -98,13 +98,20 @@ interval-style key and observes the behaviour follow.
 
 ## Lifecycle Hooks
 
-This row exercises `UltiKits/UltiCleaner#14`'s lifecycle-hook migration: the framework's `final`
+Two rows. `ulticleaner.lifecycle.removed-key-warning` exercises the startup check that tells an
+operator a key they still have in their own file is no longer read; its first step is its own
+positive control, because a check that never fires and a file with no leftover keys produce the
+same (empty) console.
+
+`ulticleaner.lifecycle.reload` exercises `UltiKits/UltiCleaner#14`'s lifecycle-hook migration: the
+framework's `final`
 `reloadSelf()` now re-reads `config/cleaner.yml` before it calls this module's `onReload()` hook,
 and that hook resets both cleanup countdowns from the reloaded values (see `FEATURES.md`'s
 `## Lifecycle Hooks`). Before the migration the module's own `reloadSelf()` override skipped the
-file re-read, so the countdown was reset to the OLD interval. The Expected below is chosen so that
+file re-read, so the countdown was reset to the OLD interval. Its Expected is chosen so that
 behaviour fails the row.
 
 | ID | Preconditions | Steps | Expected | Layer | Covers |
 |---|---|---|---|---|---|
+| ulticleaner.lifecycle.removed-key-warning | Server stopped. In `config/cleaner.yml`, hand-add the five keys this version removed, exactly as an upgraded install would still carry them: a top-level `chunk:` block with `enabled: false`, `max-distance: 20`, `batch-size: 5`, `timeout: 5`, and a `prefix: '&a[清理]'` entry inside the existing `messages:` block | 1. Start the server and read the console. 2. Stop the server, delete all five keys from `config/cleaner.yml`, save. 3. Start the server again and read the console | Step 1 prints exactly five WARNING lines from this module, one per key, each containing the text `UltiCleaner`, the path of the `config/cleaner.yml` it read, and the key's own dotted name — `messages.prefix`, `chunk.enabled`, `chunk.max-distance`, `chunk.batch-size`, `chunk.timeout` — and each ending with an instruction to delete the key. The `messages.prefix` line names the language catalogue as where the setting went; the four `chunk.*` lines say there is no replacement setting. Step 3 prints NONE of those five lines. Step 1 is this row's positive control and must be read first: without it, step 3's silence is indistinguishable from a check that never fires (`UltiKits/UltiCleaner#18`, `UltiKits/UltiCleaner#23`) | server | |
 | ulticleaner.lifecycle.reload | Sender is an operator (`/ul` is `requireOp = true`) and holds `ulticleaner.clean`; `item.enabled: true` and `item.interval: 300` (both shipped defaults) in `config/cleaner.yml` AS CURRENTLY LOADED — earlier rows lower `item.interval`, so set it back to 300 and then either restart or run `/ul reload UltiCleaner`; `entity.interval` at its shipped default (600); `smart.enabled: false` (shipped default) | 1. Run `/clean status` and note S1, the "Next item cleanup: S1 seconds" value. If S1 is 40 or less, wait until the countdown passes zero and restarts, then run `/clean status` once more; if S1 is still 40 or less, the loaded interval is not 300 and the precondition is not met — record `blocked`, do not keep waiting. 2. Without restarting the server, edit `config/cleaner.yml` to `item.interval: 20` and save. 3. Run `/ul reload UltiCleaner`. 4. Immediately run `/clean status` and note S2. 5. Wait 25 seconds without running any `/clean` command, then run `/clean status` and note S3. 6. Cleanup: set `item.interval` back to 300, save, and run `/ul reload UltiCleaner` again | After step 3 the sender receives (gloss) "Module UltiCleaner has been reloaded" (green), and the console shows the framework's own line (gloss) "Module 'UltiCleaner' reloaded." BEFORE this module's own (gloss) "UltiCleaner configuration has been reloaded!" line. S2 is 20 or less: the countdown was reset to the new interval, not left running down from S1 and not reset to 300. S3 is 20 or less: the countdown reached zero within about 20 seconds of the reload and restarted from the new interval of 20, not from 300. A value of S2 or S3 above 20 (in particular one near 300) is a fail. The entity countdown is also reset by the reload, to 600, so no entity cleanup can collide with the item cleanup during the wait (`UltiKits/UltiCleaner#15`) | server | |

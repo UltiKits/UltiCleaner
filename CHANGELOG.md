@@ -7,6 +7,22 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- On startup, and again on every `/ul reload`, this module now checks your own `config/cleaner.yml`
+  for keys this version no longer reads and logs one warning per leftover, naming the module, the
+  file and the key, and saying where the setting went. Deleting a key from the module stops a
+  *fresh* file being written with it but does nothing to the file you already have — the framework
+  only ever writes a default for a key that is missing — so without this warning an edited value
+  would simply stop meaning anything, silently. The keys checked for are `messages.prefix`,
+  `chunk.enabled`, `chunk.max-distance`, `chunk.batch-size` and `chunk.timeout`; delete them from
+  the file to silence it.
+- 本模块现在会在启动时、以及每次 `/ul reload` 时检查你自己的 `config/cleaner.yml` 中是否仍存在本版本
+  不再读取的配置项，并为每个残留键各记一条警告，点明模块、文件与键名，并说明该设置改去哪里。
+  从模块中删除一个键，只会让**新生成**的文件里不再有它，对你已有的文件没有任何影响——框架只为**缺失**的键
+  写入默认值——因此若没有这条警告，一个被改过的值会就此悄无声息地失效。当前检查的键为 `messages.prefix`、
+  `chunk.enabled`、`chunk.max-distance`、`chunk.batch-size`、`chunk.timeout`；把它们从文件中删除即可不再提示。
+
 ### Fixed
 
 - `/ul reload UltiCleaner` (and a bare `/ul reload`) now re-reads `config/cleaner.yml` and

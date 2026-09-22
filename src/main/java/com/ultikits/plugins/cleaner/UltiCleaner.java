@@ -1,5 +1,6 @@
 package com.ultikits.plugins.cleaner;
 
+import com.ultikits.plugins.cleaner.config.RemovedConfigKeys;
 import com.ultikits.plugins.cleaner.service.CleanerService;
 import com.ultikits.plugins.cleaner.service.TpsAwareScheduler;
 import com.ultikits.plugins.cleaner.utils.ServerTypeUtil;
@@ -23,10 +24,17 @@ import com.ultikits.ultitools.annotations.UltiToolsModule;
 @UltiToolsModule(scanBasePackages = {"com.ultikits.plugins.cleaner"})
 public class UltiCleaner extends UltiToolsPlugin {
 
+    /** The one configuration file this module owns, relative to its own config folder. */
+    private static final String CONFIG_FILE = "config/cleaner.yml";
+
     @Override
     public boolean registerSelf() {
         // Log server type
         getLogger().info("Detected server: " + ServerTypeUtil.getServerSoftware());
+
+        // Tell the operator about keys this version no longer reads but which are still in
+        // their own file -- deleting a key from CleanerConfig does nothing to files on disk.
+        warnAboutRemovedConfigKeys();
 
         // Load configuration caches
         CleanerService cleanerService = getContext().getBean(CleanerService.class);
@@ -46,10 +54,15 @@ public class UltiCleaner extends UltiToolsPlugin {
 
     @Override
     protected void onReload() {
+        warnAboutRemovedConfigKeys();
         CleanerService cleanerService = getContext().getBean(CleanerService.class);
         if (cleanerService != null) {
             cleanerService.reload();
         }
         getLogger().info(i18n("cleaner_reloaded"));
+    }
+
+    private void warnAboutRemovedConfigKeys() {
+        RemovedConfigKeys.warnAboutLeftovers(getConfigFile(CONFIG_FILE), getLogger()::warn);
     }
 }
