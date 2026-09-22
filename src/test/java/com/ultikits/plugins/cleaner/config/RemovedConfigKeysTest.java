@@ -91,7 +91,7 @@ class RemovedConfigKeysTest {
         }
 
         @Test
-        @DisplayName("Reports only the keys actually present, and says where the setting went")
+        @DisplayName("Reports only the keys actually present, and tells the truth about where the prefix comes from (UltiKits/UltiCleaner#18)")
         void reportsOnlyWhatIsPresent(@TempDir File dir) throws IOException {
             File config = write(dir, "cleaner.yml",
                     "messages:\n  prefix: '&a[Cleaner]'\n  warn: 'x'\n");
@@ -100,9 +100,18 @@ class RemovedConfigKeysTest {
 
             assertThat(warnings).hasSize(1);
             assertThat(warnings.get(0)).contains("messages.prefix");
-            assertThat(warnings.get(0)).contains("language catalogue");
             assertThat(warnings.get(0)).contains("Delete the key");
             assertThat(warnings.get(0)).doesNotContain("chunk.");
+
+            // The guidance must point at the seven sibling messages.* keys, which is where a
+            // prefix actually comes from. It must NOT claim the language catalogue supplies it:
+            // `grep -rn "i18n(" src/main/java` returns two console log lines and nothing else, so
+            // every broadcast is read from the configuration and the catalogue's own copies of
+            // these messages are read by nobody. Telling an operator otherwise inside the very
+            // mechanism this wave added to stop false statements of behaviour would be the defect
+            // it exists to remove.
+            assertThat(warnings.get(0)).contains("messages.*");
+            assertThat(warnings.get(0)).doesNotContain("language catalogue");
         }
 
         @Test
