@@ -7,6 +7,8 @@ import com.ultikits.plugins.cleaner.utils.ServerTypeUtil;
 import com.ultikits.ultitools.abstracts.UltiToolsPlugin;
 import com.ultikits.ultitools.annotations.UltiToolsModule;
 
+import java.io.File;
+
 /**
  * UltiCleaner - Advanced automatic entity and item cleanup for Minecraft servers.
  * <p>
@@ -63,6 +65,21 @@ public class UltiCleaner extends UltiToolsPlugin {
     }
 
     private void warnAboutRemovedConfigKeys() {
-        RemovedConfigKeys.warnAboutLeftovers(getConfigFile(CONFIG_FILE), getLogger()::warn);
+        RemovedConfigKeys.warnAboutLeftovers(operatorConfigFile(), getLogger()::warn);
+    }
+
+    /**
+     * The operator's own copy of this module's configuration file.
+     * <p>
+     * A seam, package-private on purpose. {@code UltiToolsPlugin#getConfigFile} is {@code protected}
+     * and {@code final}, so a test in this package can neither call it nor stub it, and a mocked
+     * plugin returns {@code null} from it -- which means that without this method the removed-key
+     * check's wiring cannot be asserted at all, only its predicate. Overriding this one method lets
+     * a test point the check at a real file and prove the call actually happens.
+     *
+     * @return the file {@code config/cleaner.yml} resolves to for this installation
+     */
+    File operatorConfigFile() {
+        return getConfigFile(CONFIG_FILE);
     }
 }
