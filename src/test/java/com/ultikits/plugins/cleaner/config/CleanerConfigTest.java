@@ -265,13 +265,6 @@ class CleanerConfigTest {
         }
 
         @Test
-        @DisplayName("Should have message prefix")
-        void messagePrefix() {
-            CleanerConfig config = createRealConfig();
-            assertThat(config.getMessagePrefix()).isNotEmpty();
-        }
-
-        @Test
         @DisplayName("Should have warn message with {TIME} placeholder")
         void warnMessage() {
             CleanerConfig config = createRealConfig();
@@ -447,14 +440,6 @@ class CleanerConfigTest {
         }
 
         @Test
-        @DisplayName("Should update message prefix")
-        void setMessagePrefix() {
-            CleanerConfig config = createRealConfig();
-            config.setMessagePrefix("&b[Custom]");
-            assertThat(config.getMessagePrefix()).isEqualTo("&b[Custom]");
-        }
-
-        @Test
         @DisplayName("Should update warn message")
         void setWarnMessage() {
             CleanerConfig config = createRealConfig();
@@ -548,6 +533,35 @@ class CleanerConfigTest {
             CleanerConfig config = createRealConfig();
             config.setEntityWarnTimes(java.util.Arrays.asList(30, 10, 5));
             assertThat(config.getEntityWarnTimes()).containsExactly(30, 10, 5);
+        }
+    }
+
+    @Nested
+    @DisplayName("Removed Keys")
+    class RemovedKeys {
+
+        @Test
+        @DisplayName("messages.prefix is no longer a declared key (UltiKits/UltiCleaner#18)")
+        void messagePrefixIsNoLongerDeclared() {
+            java.util.List<String> declared = declaredConfigEntryPaths();
+
+            // Positive control: keys this class still declares ARE found by this query, so the
+            // absence asserted below means "removed", not "the query cannot see @ConfigEntry".
+            assertThat(declared).contains("messages.warn", "messages.item-cleaned", "item.enabled");
+
+            assertThat(declared).doesNotContain("messages.prefix");
+        }
+
+        private java.util.List<String> declaredConfigEntryPaths() {
+            java.util.List<String> paths = new java.util.ArrayList<>();
+            for (java.lang.reflect.Field field : CleanerConfig.class.getDeclaredFields()) {
+                com.ultikits.ultitools.annotations.ConfigEntry entry =
+                        field.getAnnotation(com.ultikits.ultitools.annotations.ConfigEntry.class);
+                if (entry != null) {
+                    paths.add(entry.path());
+                }
+            }
+            return paths;
         }
     }
 
