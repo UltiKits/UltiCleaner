@@ -1,6 +1,7 @@
 package com.ultikits.plugins.cleaner.commands;
 
 import com.ultikits.plugins.cleaner.UltiCleanerTestHelper;
+import com.ultikits.plugins.cleaner.config.CleanerConfig;
 import com.ultikits.plugins.cleaner.service.CleanerService;
 import com.ultikits.plugins.cleaner.service.TpsAwareScheduler;
 
@@ -20,6 +21,7 @@ import static org.mockito.Mockito.*;
 class CleanCommandTest {
 
     private CleanerService cleanerService;
+    private CleanerConfig config;
     private TpsAwareScheduler tpsScheduler;
     private CleanCommand command;
     private Player player;
@@ -29,9 +31,10 @@ class CleanCommandTest {
     void setUp() throws Exception {
         UltiCleanerTestHelper.setUp();
         cleanerService = mock(CleanerService.class);
+        config = UltiCleanerTestHelper.createDefaultConfig();
         tpsScheduler = mock(TpsAwareScheduler.class);
 
-        command = new CleanCommand(cleanerService);
+        command = new CleanCommand(cleanerService, config);
 
         player = UltiCleanerTestHelper.createMockPlayer("TestPlayer", UUID.randomUUID());
         sender = mock(CommandSender.class);
@@ -257,6 +260,47 @@ class CleanCommandTest {
             command.status(sender);
 
             verify(sender, atLeast(4)).sendMessage(anyString());
+        }
+
+        @Test
+        @DisplayName("Low-TPS warning must name the CONFIGURED reduction, not a literal 30% (UltiKits/UltiCleaner#21)")
+        void lowTpsWarningNamesConfiguredReduction() {
+            // Deliberately NOT the shipped default of 30: a test pinned to the default cannot
+            // tell an interpolated value from the hardcoded literal it replaced.
+            when(config.getLowTpsReduction()).thenReturn(60);
+            when(cleanerService.getItemCountdown()).thenReturn(300);
+            when(cleanerService.getEntityCountdown()).thenReturn(600);
+            when(cleanerService.isCleaningInProgress()).thenReturn(false);
+            when(tpsScheduler.getTpsStatus()).thenReturn("17.5 (Low)");
+            when(tpsScheduler.isCriticalTps()).thenReturn(false);
+            when(tpsScheduler.isLowTps()).thenReturn(true);
+
+            command.status(sender);
+
+            org.mockito.ArgumentCaptor<String> lines = org.mockito.ArgumentCaptor.forClass(String.class);
+            verify(sender, atLeast(4)).sendMessage(lines.capture());
+            assertThat(lines.getAllValues()).anySatisfy(line -> assertThat(line).contains("60%"));
+            assertThat(lines.getAllValues()).noneSatisfy(line -> assertThat(line).contains("30%"));
+        }
+
+        @Test
+        @DisplayName("Critical-TPS warning must name the CONFIGURED reduction, not a literal 50% (UltiKits/UltiCleaner#21)")
+        void criticalTpsWarningNamesConfiguredReduction() {
+            // Deliberately NOT the shipped default of 50, for the same reason.
+            when(config.getCriticalTpsReduction()).thenReturn(70);
+            when(cleanerService.getItemCountdown()).thenReturn(300);
+            when(cleanerService.getEntityCountdown()).thenReturn(600);
+            when(cleanerService.isCleaningInProgress()).thenReturn(false);
+            when(tpsScheduler.getTpsStatus()).thenReturn("14.0 (Critical)");
+            when(tpsScheduler.isCriticalTps()).thenReturn(true);
+            when(tpsScheduler.isLowTps()).thenReturn(true);
+
+            command.status(sender);
+
+            org.mockito.ArgumentCaptor<String> lines = org.mockito.ArgumentCaptor.forClass(String.class);
+            verify(sender, atLeast(4)).sendMessage(lines.capture());
+            assertThat(lines.getAllValues()).anySatisfy(line -> assertThat(line).contains("70%"));
+            assertThat(lines.getAllValues()).noneSatisfy(line -> assertThat(line).contains("50%"));
         }
 
         @Test

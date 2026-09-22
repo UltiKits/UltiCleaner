@@ -169,6 +169,8 @@ public final class UltiCleanerTestHelper {
         lenient().when(config.getCleanBatchSize()).thenReturn(50);
         lenient().when(config.isShowCleanProgress()).thenReturn(false);
         lenient().when(config.isTpsAdaptiveEnabled()).thenReturn(true);
+        lenient().when(config.getLowTpsReduction()).thenReturn(30);
+        lenient().when(config.getCriticalTpsReduction()).thenReturn(50);
 
         // Mock message methods
         lenient().when(config.getItemCleanedMessage()).thenReturn("&a[Clean] Cleaned {COUNT} items");
