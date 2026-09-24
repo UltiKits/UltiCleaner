@@ -246,7 +246,9 @@ class CleanerTextLanguageTest {
             PluginLogger logger = mock(PluginLogger.class);
             when(plugin.getLogger()).thenReturn(logger);
             UltiCleanerTestHelper.setField(scheduler, "plugin", plugin);
-            UltiCleanerTestHelper.setField(scheduler, "config", UltiCleanerTestHelper.createDefaultConfig());
+            CleanerConfig config = UltiCleanerTestHelper.createDefaultConfig();
+            when(config.isTpsAdaptiveEnabled()).thenReturn(false);
+            UltiCleanerTestHelper.setField(scheduler, "config", config);
 
             scheduler.init();
 
