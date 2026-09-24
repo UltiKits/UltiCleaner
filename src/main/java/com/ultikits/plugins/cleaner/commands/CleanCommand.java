@@ -1,6 +1,6 @@
 package com.ultikits.plugins.cleaner.commands;
 
-import com.ultikits.plugins.cleaner.service.ChunkUnloadService;
+import com.ultikits.plugins.cleaner.config.CleanerConfig;
 import com.ultikits.plugins.cleaner.service.CleanerService;
 import com.ultikits.plugins.cleaner.service.TpsAwareScheduler;
 import com.ultikits.ultitools.abstracts.command.BaseCommandExecutor;
@@ -13,8 +13,8 @@ import java.util.Map;
 
 /**
  * Command for manual cleanup operations.
- * Supports item cleanup, entity cleanup, chunk unloading,
- * status checking, and server statistics.
+ * Supports item cleanup, entity cleanup, status checking,
+ * and server statistics.
  *
  * @author wisdomme
  * @version 2.0.0
@@ -27,11 +27,11 @@ import java.util.Map;
 public class CleanCommand extends BaseCommandExecutor {
     
     private final CleanerService cleanerService;
-    private final ChunkUnloadService chunkUnloadService;
+    private final CleanerConfig config;
     
-    public CleanCommand(CleanerService cleanerService, ChunkUnloadService chunkUnloadService) {
+    public CleanCommand(CleanerService cleanerService, CleanerConfig config) {
         this.cleanerService = cleanerService;
-        this.chunkUnloadService = chunkUnloadService;
+        this.config = config;
     }
     
     @CmdMapping(format = "items")
@@ -65,16 +65,6 @@ public class CleanCommand extends BaseCommandExecutor {
         sender.sendMessage(ChatColor.GREEN + "已开始清理 " + itemCount + " 个物品和 " + entityCount + " 个实体（分批处理中）...");
     }
     
-    @CmdMapping(format = "chunks")
-    public void cleanChunks(@CmdSender CommandSender sender) {
-        if (chunkUnloadService == null) {
-            sender.sendMessage(ChatColor.RED + "区块卸载服务未启用！");
-            return;
-        }
-        int count = chunkUnloadService.forceUnloadChunks();
-        sender.sendMessage(ChatColor.GREEN + "已卸载 " + count + " 个闲置区块！");
-    }
-    
     @CmdMapping(format = "check")
     public void check(@CmdSender CommandSender sender) {
         Map<String, Integer> counts = cleanerService.getEntityCounts();
@@ -84,10 +74,7 @@ public class CleanCommand extends BaseCommandExecutor {
         sender.sendMessage(ChatColor.YELLOW + "可清理生物: " + ChatColor.WHITE + counts.get("mobs"));
         sender.sendMessage(ChatColor.YELLOW + "实体总数: " + ChatColor.WHITE + counts.get("total"));
         
-        if (chunkUnloadService != null) {
-            sender.sendMessage(ChatColor.YELLOW + "已加载区块: " + ChatColor.WHITE + chunkUnloadService.getTotalLoadedChunks());
-            sender.sendMessage(ChatColor.YELLOW + "可卸载区块: " + ChatColor.WHITE + chunkUnloadService.getUnloadableChunkCount());
-        }
+        sender.sendMessage(ChatColor.YELLOW + "已加载区块: " + ChatColor.WHITE + cleanerService.getTotalLoadedChunks());
         
         TpsAwareScheduler tpsScheduler = cleanerService.getTpsScheduler();
         if (tpsScheduler != null) {
@@ -111,9 +98,11 @@ public class CleanCommand extends BaseCommandExecutor {
         if (tpsScheduler != null) {
             sender.sendMessage(ChatColor.YELLOW + "TPS: " + tpsScheduler.getTpsStatus());
             if (tpsScheduler.isCriticalTps()) {
-                sender.sendMessage(ChatColor.RED + "⚠ TPS严重过低，智能清理阈值已降低50%");
+                sender.sendMessage(ChatColor.RED + "⚠ TPS严重过低，智能清理阈值已降低"
+                        + config.getCriticalTpsReduction() + "%");
             } else if (tpsScheduler.isLowTps()) {
-                sender.sendMessage(ChatColor.YELLOW + "⚠ TPS较低，智能清理阈值已降低30%");
+                sender.sendMessage(ChatColor.YELLOW + "⚠ TPS较低，智能清理阈值已降低"
+                        + config.getLowTpsReduction() + "%");
             }
         }
     }
@@ -124,7 +113,6 @@ public class CleanCommand extends BaseCommandExecutor {
         sender.sendMessage(ChatColor.YELLOW + "/clean items" + ChatColor.WHITE + " - 清理地面物品");
         sender.sendMessage(ChatColor.YELLOW + "/clean entities" + ChatColor.WHITE + " - 清理实体");
         sender.sendMessage(ChatColor.YELLOW + "/clean all" + ChatColor.WHITE + " - 清理所有");
-        sender.sendMessage(ChatColor.YELLOW + "/clean chunks" + ChatColor.WHITE + " - 卸载闲置区块");
         sender.sendMessage(ChatColor.YELLOW + "/clean check" + ChatColor.WHITE + " - 查看实体统计");
         sender.sendMessage(ChatColor.YELLOW + "/clean status" + ChatColor.WHITE + " - 查看清理状态");
     }

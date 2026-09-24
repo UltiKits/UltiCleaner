@@ -184,38 +184,6 @@ class ServerTypeUtilTest {
         }
 
         @Test
-        @DisplayName("isEntitiesLoaded should return boolean")
-        void isEntitiesLoaded() {
-            when(chunk.isLoaded()).thenReturn(true);
-
-            boolean result = ServerTypeUtil.isEntitiesLoaded(chunk);
-
-            assertThat(result).isIn(true, false);
-        }
-
-        @Test
-        @DisplayName("isEntitiesLoaded should return true for loaded chunk on Spigot")
-        void isEntitiesLoadedSpigotLoaded() throws Exception {
-            UltiCleanerTestHelper.setStaticField(ServerTypeUtil.class, "isPaper", false);
-            when(chunk.isLoaded()).thenReturn(true);
-
-            boolean result = ServerTypeUtil.isEntitiesLoaded(chunk);
-
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        @DisplayName("isEntitiesLoaded should return false for unloaded chunk on Spigot")
-        void isEntitiesLoadedSpigotUnloaded() throws Exception {
-            UltiCleanerTestHelper.setStaticField(ServerTypeUtil.class, "isPaper", false);
-            when(chunk.isLoaded()).thenReturn(false);
-
-            boolean result = ServerTypeUtil.isEntitiesLoaded(chunk);
-
-            assertThat(result).isFalse();
-        }
-
-        @Test
         @DisplayName("getChunkAtAsync on Paper should use the reflective World#getChunkAtAsync method")
         void getChunkAtAsyncUsesReflectivePaperMethod() throws Exception {
             UltiCleanerTestHelper.setStaticField(ServerTypeUtil.class, "isPaper", true);
@@ -235,31 +203,6 @@ class ServerTypeUtilTest {
             assertThat(future).isSameAs(paperFuture);
             assertThat(future.isDone()).isTrue();
             assertThat(future.get()).isSameAs(chunk);
-        }
-
-        @Test
-        @DisplayName("isEntitiesLoaded on Paper should attempt Paper API method")
-        void isEntitiesLoadedPaperAttempt() throws Exception {
-            UltiCleanerTestHelper.setStaticField(ServerTypeUtil.class, "isPaper", true);
-            UltiCleanerTestHelper.setStaticField(ServerTypeUtil.class, "isEntitiesLoadedMethod", null);
-
-            // The Spigot 1.20 API may or may not include isEntitiesLoaded on Chunk.
-            // Either way, the call should not throw and should return a boolean.
-            boolean result = ServerTypeUtil.isEntitiesLoaded(chunk);
-            assertThat(result).isIn(true, false);
-        }
-
-        @Test
-        @DisplayName("isEntitiesLoaded should fall back to chunk.isLoaded() when the Paper reflective call throws")
-        void isEntitiesLoadedFallsBackWhenReflectiveCallThrows() throws Exception {
-            UltiCleanerTestHelper.setStaticField(ServerTypeUtil.class, "isPaper", true);
-            UltiCleanerTestHelper.setStaticField(ServerTypeUtil.class, "isEntitiesLoadedMethod", null);
-            when(chunk.isEntitiesLoaded()).thenThrow(new RuntimeException("boom"));
-            when(chunk.isLoaded()).thenReturn(true);
-
-            boolean result = ServerTypeUtil.isEntitiesLoaded(chunk);
-
-            assertThat(result).isTrue();
         }
     }
 

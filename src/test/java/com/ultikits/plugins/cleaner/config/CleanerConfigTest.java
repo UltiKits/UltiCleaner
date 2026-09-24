@@ -90,20 +90,6 @@ class CleanerConfigTest {
         }
 
         @Test
-        @DisplayName("Should have chunk unload disabled by default")
-        void chunkUnloadEnabled() {
-            CleanerConfig config = createRealConfig();
-            assertThat(config.isChunkUnloadEnabled()).isFalse();
-        }
-
-        @Test
-        @DisplayName("Should have max chunk distance of 20")
-        void maxChunkDistance() {
-            CleanerConfig config = createRealConfig();
-            assertThat(config.getMaxChunkDistance()).isEqualTo(20);
-        }
-
-        @Test
         @DisplayName("Should have item whitelist with default values")
         void itemWhitelist() {
             CleanerConfig config = createRealConfig();
@@ -170,14 +156,6 @@ class CleanerConfigTest {
             CleanerConfig config = createRealConfig();
             config.setTpsAdaptiveEnabled(false);
             assertThat(config.isTpsAdaptiveEnabled()).isFalse();
-        }
-
-        @Test
-        @DisplayName("Should update chunk unload enabled")
-        void setChunkUnloadEnabled() {
-            CleanerConfig config = createRealConfig();
-            config.setChunkUnloadEnabled(true);
-            assertThat(config.isChunkUnloadEnabled()).isTrue();
         }
     }
 
@@ -264,20 +242,6 @@ class CleanerConfigTest {
         }
 
         @Test
-        @DisplayName("Should have chunk unload batch size of 5")
-        void chunkUnloadBatchSize() {
-            CleanerConfig config = createRealConfig();
-            assertThat(config.getChunkUnloadBatchSize()).isEqualTo(5);
-        }
-
-        @Test
-        @DisplayName("Should have chunk unload timeout of 5")
-        void chunkUnloadTimeout() {
-            CleanerConfig config = createRealConfig();
-            assertThat(config.getChunkUnloadTimeout()).isEqualTo(5);
-        }
-
-        @Test
         @DisplayName("Should have item warn times with default values")
         void itemWarnTimes() {
             CleanerConfig config = createRealConfig();
@@ -298,13 +262,6 @@ class CleanerConfigTest {
         void entityCleanInterval() {
             CleanerConfig config = createRealConfig();
             assertThat(config.getEntityCleanInterval()).isEqualTo(600);
-        }
-
-        @Test
-        @DisplayName("Should have message prefix")
-        void messagePrefix() {
-            CleanerConfig config = createRealConfig();
-            assertThat(config.getMessagePrefix()).isNotEmpty();
         }
 
         @Test
@@ -483,38 +440,6 @@ class CleanerConfigTest {
         }
 
         @Test
-        @DisplayName("Should update max chunk distance")
-        void setMaxChunkDistance() {
-            CleanerConfig config = createRealConfig();
-            config.setMaxChunkDistance(30);
-            assertThat(config.getMaxChunkDistance()).isEqualTo(30);
-        }
-
-        @Test
-        @DisplayName("Should update chunk unload batch size")
-        void setChunkUnloadBatchSize() {
-            CleanerConfig config = createRealConfig();
-            config.setChunkUnloadBatchSize(10);
-            assertThat(config.getChunkUnloadBatchSize()).isEqualTo(10);
-        }
-
-        @Test
-        @DisplayName("Should update chunk unload timeout")
-        void setChunkUnloadTimeout() {
-            CleanerConfig config = createRealConfig();
-            config.setChunkUnloadTimeout(10);
-            assertThat(config.getChunkUnloadTimeout()).isEqualTo(10);
-        }
-
-        @Test
-        @DisplayName("Should update message prefix")
-        void setMessagePrefix() {
-            CleanerConfig config = createRealConfig();
-            config.setMessagePrefix("&b[Custom]");
-            assertThat(config.getMessagePrefix()).isEqualTo("&b[Custom]");
-        }
-
-        @Test
         @DisplayName("Should update warn message")
         void setWarnMessage() {
             CleanerConfig config = createRealConfig();
@@ -608,6 +533,35 @@ class CleanerConfigTest {
             CleanerConfig config = createRealConfig();
             config.setEntityWarnTimes(java.util.Arrays.asList(30, 10, 5));
             assertThat(config.getEntityWarnTimes()).containsExactly(30, 10, 5);
+        }
+    }
+
+    @Nested
+    @DisplayName("Removed Keys")
+    class RemovedKeys {
+
+        @Test
+        @DisplayName("messages.prefix is no longer a declared key (UltiKits/UltiCleaner#18)")
+        void messagePrefixIsNoLongerDeclared() {
+            java.util.List<String> declared = declaredConfigEntryPaths();
+
+            // Positive control: keys this class still declares ARE found by this query, so the
+            // absence asserted below means "removed", not "the query cannot see @ConfigEntry".
+            assertThat(declared).contains("messages.warn", "messages.item-cleaned", "item.enabled");
+
+            assertThat(declared).doesNotContain("messages.prefix");
+        }
+
+        private java.util.List<String> declaredConfigEntryPaths() {
+            java.util.List<String> paths = new java.util.ArrayList<>();
+            for (java.lang.reflect.Field field : CleanerConfig.class.getDeclaredFields()) {
+                com.ultikits.ultitools.annotations.ConfigEntry entry =
+                        field.getAnnotation(com.ultikits.ultitools.annotations.ConfigEntry.class);
+                if (entry != null) {
+                    paths.add(entry.path());
+                }
+            }
+            return paths;
         }
     }
 

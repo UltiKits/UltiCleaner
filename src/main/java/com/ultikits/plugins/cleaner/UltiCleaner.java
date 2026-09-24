@@ -1,11 +1,13 @@
 package com.ultikits.plugins.cleaner;
 
-import com.ultikits.plugins.cleaner.service.ChunkUnloadService;
+import com.ultikits.plugins.cleaner.config.RemovedConfigKeys;
 import com.ultikits.plugins.cleaner.service.CleanerService;
 import com.ultikits.plugins.cleaner.service.TpsAwareScheduler;
 import com.ultikits.plugins.cleaner.utils.ServerTypeUtil;
 import com.ultikits.ultitools.abstracts.UltiToolsPlugin;
 import com.ultikits.ultitools.annotations.UltiToolsModule;
+
+import java.io.File;
 
 /**
  * UltiCleaner - Advanced automatic entity and item cleanup for Minecraft servers.
@@ -15,7 +17,6 @@ import com.ultikits.ultitools.annotations.UltiToolsModule;
  * - Smart cleanup based on entity count thresholds
  * - TPS-adaptive threshold adjustment
  * - Batch processing to minimize lag spikes
- * - Safe chunk unloading with Paper compatibility
  * - Custom events for extensibility
  * </p>
  *
@@ -25,10 +26,17 @@ import com.ultikits.ultitools.annotations.UltiToolsModule;
 @UltiToolsModule(scanBasePackages = {"com.ultikits.plugins.cleaner"})
 public class UltiCleaner extends UltiToolsPlugin {
 
+    /** The one configuration file this module owns, relative to its own config folder. */
+    private static final String CONFIG_FILE = "config/cleaner.yml";
+
     @Override
     public boolean registerSelf() {
         // Log server type
         getLogger().info("Detected server: " + ServerTypeUtil.getServerSoftware());
+
+        // Tell the operator about keys this version no longer reads but which are still in
+        // their own file -- deleting a key from CleanerConfig does nothing to files on disk.
+        warnAboutRemovedConfigKeys();
 
         // Load configuration caches
         CleanerService cleanerService = getContext().getBean(CleanerService.class);
@@ -42,22 +50,36 @@ public class UltiCleaner extends UltiToolsPlugin {
             tpsScheduler.init();
         }
 
-        // Initialize chunk unload service logging
-        ChunkUnloadService chunkUnloadService = getContext().getBean(ChunkUnloadService.class);
-        if (chunkUnloadService != null) {
-            chunkUnloadService.init();
-        }
-
         getLogger().info(i18n("cleaner_enabled"));
         return true;
     }
 
     @Override
     protected void onReload() {
+        warnAboutRemovedConfigKeys();
         CleanerService cleanerService = getContext().getBean(CleanerService.class);
         if (cleanerService != null) {
             cleanerService.reload();
         }
         getLogger().info(i18n("cleaner_reloaded"));
+    }
+
+    private void warnAboutRemovedConfigKeys() {
+        RemovedConfigKeys.warnAboutLeftovers(operatorConfigFile(), getLogger()::warn);
+    }
+
+    /**
+     * The operator's own copy of this module's configuration file.
+     * <p>
+     * A seam, package-private on purpose. {@code UltiToolsPlugin#getConfigFile} is {@code protected}
+     * and {@code final}, so a test in this package can neither call it nor stub it, and a mocked
+     * plugin returns {@code null} from it -- which means that without this method the removed-key
+     * check's wiring cannot be asserted at all, only its predicate. Overriding this one method lets
+     * a test point the check at a real file and prove the call actually happens.
+     *
+     * @return the file {@code config/cleaner.yml} resolves to for this installation
+     */
+    File operatorConfigFile() {
+        return getConfigFile(CONFIG_FILE);
     }
 }

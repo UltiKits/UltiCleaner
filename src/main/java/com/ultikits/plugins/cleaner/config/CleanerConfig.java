@@ -14,7 +14,7 @@ import lombok.Setter;
 
 /**
  * Configuration for UltiCleaner.
- * Supports item cleanup, entity cleanup, chunk unloading, smart cleanup,
+ * Supports item cleanup, entity cleanup, smart cleanup,
  * and TPS-adaptive thresholds.
  *
  * @author wisdomme
@@ -142,27 +142,7 @@ public class CleanerConfig extends AbstractConfigEntity {
     @ConfigEntry(path = "tps.critical-reduction", comment = "严重低TPS时阈值降低百分比")
     private int criticalTpsReduction = 50;
     
-    // ============ Chunk Unload ============
-    @ConfigEntry(path = "chunk.enabled", comment = "启用区块卸载（卸载远离玩家的区块）")
-    private boolean chunkUnloadEnabled = false;
-
-    @Range(min = 5, max = 50)
-    @ConfigEntry(path = "chunk.max-distance", comment = "最大区块距离（区块单位，超出此距离的区块将被卸载）")
-    private int maxChunkDistance = 20;
-
-    @Range(min = 1, max = 20)
-    @ConfigEntry(path = "chunk.batch-size", comment = "每tick卸载的区块数量")
-    private int chunkUnloadBatchSize = 5;
-
-    @Range(min = 1, max = 30)
-    @ConfigEntry(path = "chunk.timeout", comment = "异步卸载超时时间（秒）")
-    private int chunkUnloadTimeout = 5;
-    
     // ============ Messages ============
-    @NotEmpty
-    @ConfigEntry(path = "messages.prefix", comment = "消息前缀（清道夫名称）")
-    private String messagePrefix = "&a[清理]";
-
     @NotEmpty
     @ConfigEntry(path = "messages.warn", comment = "清理警告消息 ({TIME}为剩余秒数)")
     private String warnMessage = "&c[清理] &f地面物品将在 &e{TIME} &f秒后清理！";

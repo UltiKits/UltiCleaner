@@ -21,7 +21,6 @@ public final class ServerTypeUtil {
     private static Boolean hasTpsMethod = null;
     private static Method getTpsMethod = null;
     private static Method getChunkAtAsyncMethod = null;
-    private static Method isEntitiesLoadedMethod = null;
     
     private ServerTypeUtil() {
         // Utility class
@@ -121,28 +120,6 @@ public final class ServerTypeUtil {
         
         // Fallback: sync loading wrapped in CompletableFuture
         return CompletableFuture.completedFuture(world.getChunkAt(x, z));
-    }
-    
-    /**
-     * Check if chunk has entities loaded (Paper only).
-     * Returns true on Spigot (assume entities are loaded if chunk is loaded).
-     * 
-     * @param chunk the chunk to check
-     * @return true if entities are loaded
-     */
-    public static boolean isEntitiesLoaded(Chunk chunk) {
-        if (isPaper()) {
-            try {
-                if (isEntitiesLoadedMethod == null) {
-                    isEntitiesLoadedMethod = Chunk.class.getMethod("isEntitiesLoaded");
-                }
-                return (boolean) isEntitiesLoadedMethod.invoke(chunk);
-            } catch (Exception e) {
-                // Fall through to default
-            }
-        }
-        // Spigot: assume entities are loaded if chunk is loaded
-        return chunk.isLoaded();
     }
     
     /**
