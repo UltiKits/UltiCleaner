@@ -151,4 +151,21 @@ class LegacyMessageDefaultsTest {
                     .as("%s must accept a blank value", field).isFalse();
         }
     }
+
+    @Test
+    @DisplayName("a file that cannot be saved after blanking is reported on the console, in the server's language")
+    void saveFailureIsReported() throws Exception {
+        config = shippedDefaults();
+        org.mockito.Mockito.doThrow(new java.io.IOException("disk full")).when(config).save();
+        UltiCleaner plugin = pluginWith(config);
+        PluginLogger logger = mock(PluginLogger.class);
+        when(plugin.getLogger()).thenReturn(logger);
+        when(plugin.i18n(anyString())).thenAnswer(CatalogueText.answer("zh"));
+        when(plugin.registerSelf()).thenCallRealMethod();
+
+        plugin.registerSelf();
+
+        verify(logger).warn(CatalogueText.text("zh", "log_config_default_save_failed")
+                .replace("{FILE}", "config/cleaner.yml").replace("{ERROR}", "disk full"));
+    }
 }
