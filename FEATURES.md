@@ -57,22 +57,16 @@ for UAT execution and issue reconciliation — the public description of these f
   files describe it as doing, that fact is itself part of "what the feature does" and is stated
   here as a plain, sourced observation, with the filed issue number, never as advice on how to fix
   it.
-- **A note on this module's actual language behaviour, read before any other row below:** this
-  module ships `lang/en.yml` and `lang/zh.yml` (32 keys each, faithfully paired), but only 2 of
-  those 32 keys are ever read anywhere in this module's source — confirmed by
-  `grep -rn "i18n(" src/main/java`, which returns exactly 2 call sites, both in
-  `UltiCleaner.java` (its enable and reload log lines). The third call site was
-  `ChunkUnloadService`'s chunk-unload progress broadcast, removed with that feature
-  (`UltiKits/UltiCleaner#27`). Every player-facing string in `CleanCommand` (help/status/check output) is a
-  hardcoded Simplified Chinese literal with NO i18n or config indirection at all. Every
-  scheduled-cleanup broadcast in `CleanerService` (warnings, cleaned-count messages,
-  smart-clean-triggered, progress, cancelled) is instead read from `CleanerConfig`'s own message
-  fields, each defaulting to a hardcoded Chinese literal in `config/cleaner.yml`, independent of
-  both the lang files and the `language` setting — these ARE operator-editable (via
-  `config/cleaner.yml`), unlike `CleanCommand`'s literals, but `language: en` does not switch them
-  to the shipped `lang/en.yml` wording. Filed as `UltiKits/UltiCleaner#17`. No row below carries a
-  `language: en` precondition, and every quoted chat line is given as an English gloss of the
-  actual (Chinese) source text, per this document's English-only rule.
+- **Language:** every line this module shows a player or writes to the console follows the
+  framework's `language` setting. `CleanCommand`'s output, the command description and the console
+  lines come from `lang/en.yml` / `lang/zh.yml`. The seven scheduled-cleanup broadcasts
+  (`messages.*` in `config/cleaner.yml`) are operator-editable: a blank value, the default since 6.3.0,
+  is broadcast with the language file's text in the server's language, and any other value is
+  broadcast as written. On upgrade, a value that is exactly the Chinese default an earlier version
+  shipped is blanked and the file saved at start-up (and on `/ul reload`), so an operator who never
+  edited these messages gets the language file's text; an edited value is kept. Before 6.3.0 none of
+  this followed `language` (`UltiKits/UltiCleaner#17`). Rows below that quote a chat or console line
+  carry a `language: en` precondition and quote the English text.
 
 ### Reconciliation command family
 
@@ -124,8 +118,8 @@ to live in the deleted `ulticleaner.scheduled.chunk-unload` row.
 ## Commands
 
 `CleanCommand` — class-level `@CmdExecutor(alias = {"clean", "cleaner", "clear"}, permission =
-"ulticleaner.clean", description = ...)` (the `description` value in source is a Chinese-only
-string meaning "Clean ground items and entities"). No class-level `@CmdTarget`.
+"ulticleaner.clean", description = "command_description")`, a language key the framework translates
+("Clean up ground items and entities" under `language: en`). No class-level `@CmdTarget`.
 
 | ID | Feature | Kind | How to reach | Permission | Target | Tier | Manual | Source |
 |---|---|---|---|---|---|---|---|---|
@@ -171,13 +165,13 @@ count of 33 exactly).
 | ulticleaner.config.cleaner.item.interval | Seconds between scheduled item cleanups | config | `config/cleaner.yml: item.interval (default: 300)` | n/a | n/a | admin | brief | CleanerService#tickItemClean |
 | ulticleaner.config.cleaner.item.warn-times | Seconds-remaining values, counted down from `item.interval`, at which `item-warn` is broadcast | config | `config/cleaner.yml: item.warn-times (default: 60, 30, 10, 5, 3, 2, 1)` | n/a | n/a | admin | brief | CleanerService#tickItemClean |
 | ulticleaner.config.cleaner.item.whitelist | Item material names exempt from cleanup entirely, regardless of age or name | config | `config/cleaner.yml: item.whitelist (default: DIAMOND, EMERALD, NETHER_STAR, BEACON, ELYTRA)` | n/a | n/a | admin | brief | CleanerService#collectItemsToClean |
-| ulticleaner.config.cleaner.messages.clean-cancelled | Message broadcast when a `PreItemCleanEvent`/`PreEntityCleanEvent` listener cancels a cleanup | config | `config/cleaner.yml: messages.clean-cancelled (default: a Chinese-language message meaning "Cleanup operation was cancelled by another plugin!")` | n/a | n/a | admin | brief | CleanerService#cleanItemsWithBatch, CleanerService#cleanEntitiesWithBatch |
-| ulticleaner.config.cleaner.messages.clean-progress | Progress message sent to OPs partway through a multi-tick batch, with `{CURRENT}`/`{TOTAL}` placeholders, when `batch.show-progress` is true | config | `config/cleaner.yml: messages.clean-progress (default: a Chinese-language template meaning "Cleaning progress: {CURRENT}/{TOTAL}")` | n/a | n/a | admin | brief | CleanerService#removeEntitiesInBatches |
-| ulticleaner.config.cleaner.messages.entity-cleaned | Message broadcast (to all players) when a scheduled/manual/smart entity cleanup removes at least one entity, with a `{COUNT}` placeholder | config | `config/cleaner.yml: messages.entity-cleaned (default: a Chinese-language template meaning "Cleaned {COUNT} entities!")` | n/a | n/a | admin | brief | CleanerService#broadcastEntityCleaned |
-| ulticleaner.config.cleaner.messages.entity-warn | Warning message broadcast at each `entity.warn-times` countdown mark, with a `{TIME}` placeholder | config | `config/cleaner.yml: messages.entity-warn (default: a Chinese-language template meaning "Entities will be cleaned in {TIME} seconds!")` | n/a | n/a | admin | brief | CleanerService#broadcastEntityWarn |
-| ulticleaner.config.cleaner.messages.item-cleaned | Message broadcast (to all players) when a scheduled/manual/smart item cleanup completes, with a `{COUNT}` placeholder — unlike the entity variant, this one broadcasts even when `{COUNT}` is `0` | config | `config/cleaner.yml: messages.item-cleaned (default: a Chinese-language template meaning "Cleaned {COUNT} ground items!")` | n/a | n/a | admin | brief | CleanerService#broadcastItemCleaned |
-| ulticleaner.config.cleaner.messages.smart-triggered | Message broadcast the instant smart cleanup triggers (before the actual item/entity removal begins) | config | `config/cleaner.yml: messages.smart-triggered (default: a Chinese-language message meaning "Detected too many entities, initiating smart cleanup...")` | n/a | n/a | admin | brief | CleanerService#checkSmartClean |
-| ulticleaner.config.cleaner.messages.warn | Warning message broadcast at each `item.warn-times` countdown mark, with a `{TIME}` placeholder | config | `config/cleaner.yml: messages.warn (default: a Chinese-language template meaning "Ground items will be cleaned in {TIME} seconds!")` | n/a | n/a | admin | brief | CleanerService#broadcastWarn |
+| ulticleaner.config.cleaner.messages.clean-cancelled | Message broadcast when a `PreItemCleanEvent`/`PreEntityCleanEvent` listener cancels a cleanup | config | `config/cleaner.yml: messages.clean-cancelled (default: blank — broadcast with the language file's text; under language: en "&c[Cleaner] &fCleanup operation was cancelled by another plugin!"; any other value is broadcast as written)` | n/a | n/a | admin | brief | CleanerService#cleanItemsWithBatch, CleanerService#cleanEntitiesWithBatch |
+| ulticleaner.config.cleaner.messages.clean-progress | Progress message sent to OPs partway through a multi-tick batch, with `{CURRENT}`/`{TOTAL}` placeholders, when `batch.show-progress` is true | config | `config/cleaner.yml: messages.clean-progress (default: blank — broadcast with the language file's text; under language: en "&7[Cleaner] &fCleaning progress: &e{CURRENT}&f/&e{TOTAL}"; any other value is broadcast as written)` | n/a | n/a | admin | brief | CleanerService#removeEntitiesInBatches |
+| ulticleaner.config.cleaner.messages.entity-cleaned | Message broadcast (to all players) when a scheduled/manual/smart entity cleanup removes at least one entity, with a `{COUNT}` placeholder | config | `config/cleaner.yml: messages.entity-cleaned (default: blank — broadcast with the language file's text; under language: en "&a[Cleaner] &fCleaned &e{COUNT} &fentities!"; any other value is broadcast as written)` | n/a | n/a | admin | brief | CleanerService#broadcastEntityCleaned |
+| ulticleaner.config.cleaner.messages.entity-warn | Warning message broadcast at each `entity.warn-times` countdown mark, with a `{TIME}` placeholder | config | `config/cleaner.yml: messages.entity-warn (default: blank — broadcast with the language file's text; under language: en "&c[Cleaner] &fEntities will be cleaned in &e{TIME} &fseconds!"; any other value is broadcast as written)` | n/a | n/a | admin | brief | CleanerService#broadcastEntityWarn |
+| ulticleaner.config.cleaner.messages.item-cleaned | Message broadcast (to all players) when a scheduled/manual/smart item cleanup completes, with a `{COUNT}` placeholder — unlike the entity variant, this one broadcasts even when `{COUNT}` is `0` | config | `config/cleaner.yml: messages.item-cleaned (default: blank — broadcast with the language file's text; under language: en "&a[Cleaner] &fCleaned &e{COUNT} &fground items!"; any other value is broadcast as written)` | n/a | n/a | admin | brief | CleanerService#broadcastItemCleaned |
+| ulticleaner.config.cleaner.messages.smart-triggered | Message broadcast the instant smart cleanup triggers (before the actual item/entity removal begins) | config | `config/cleaner.yml: messages.smart-triggered (default: blank — broadcast with the language file's text; under language: en "&e[Cleaner] &fDetected too many entities, initiating smart cleanup..."; any other value is broadcast as written)` | n/a | n/a | admin | brief | CleanerService#checkSmartClean |
+| ulticleaner.config.cleaner.messages.warn | Warning message broadcast at each `item.warn-times` countdown mark, with a `{TIME}` placeholder | config | `config/cleaner.yml: messages.warn (default: blank — broadcast with the language file's text; under language: en "&c[Cleaner] &fGround items will be cleaned in &e{TIME} &fseconds!"; any other value is broadcast as written)` | n/a | n/a | admin | brief | CleanerService#broadcastWarn |
 | ulticleaner.config.cleaner.smart.cooldown | Minimum seconds between two smart-cleanup triggers, counted from the previous trigger's own start time | config | `config/cleaner.yml: smart.cooldown (default: 60)` | n/a | n/a | admin | brief | CleanerService#checkSmartClean |
 | ulticleaner.config.cleaner.smart.enabled | Master switch for smart (threshold-triggered) cleanup, independent of the scheduled interval-based cleanup above | config | `config/cleaner.yml: smart.enabled (default: false)` | n/a | n/a | admin | brief | CleanerService#checkSmartClean |
 | ulticleaner.config.cleaner.smart.item-threshold | Server-wide ground-item count (across all non-blacklisted worlds) above which smart cleanup triggers for items, before any TPS-based reduction | config | `config/cleaner.yml: smart.item-threshold (default: 2000)` | n/a | n/a | admin | brief | CleanerService#checkSmartClean |
@@ -212,5 +206,20 @@ framework writes a declared default only for a key that is *missing* and never r
 
 | ID | Feature | Kind | How to reach | Permission | Target | Tier | Manual | Source |
 |---|---|---|---|---|---|---|---|---|
-| ulticleaner.lifecycle.removed-key-warning | On module enable and again on every `/ul reload`, read the operator's own `config/cleaner.yml` and log one WARNING per key this version no longer reads but which is still present in that file — `messages.prefix`, `chunk.enabled`, `chunk.max-distance`, `chunk.batch-size`, `chunk.timeout`. Each warning names the module, the file's path and the key, says the key no longer has any effect, says where the setting went (for `messages.prefix`, nowhere new: nothing ever read it, and a broadcast's prefix is part of that broadcast's own `messages.*` text; for the four chunk keys, nowhere, since that feature was removed), and tells the operator to delete the key to silence it. Nothing is logged when the file holds none of them, when the file is absent, or when it cannot be parsed — the framework's own config loading already reports an unparseable file, and a second message would only add noise. Deleting a key from `CleanerConfig` stops the framework WRITING it into a fresh file but does nothing to files already on disk: the framework writes a declared default only for a key that is missing, so an existing install keeps the key, keeps its value, and would otherwise get no indication the value stopped meaning anything | event | automatic, at module enable and at `/ul reload UltiCleaner` | n/a | n/a | admin | brief | UltiCleaner#registerSelf, UltiCleaner#onReload, RemovedConfigKeys#warnAboutLeftovers |
+| ulticleaner.lifecycle.removed-key-warning | On module enable and again on every `/ul reload`, read the operator's own `config/cleaner.yml` and log one WARNING per key this version no longer reads but which is still present in that file — `messages.prefix`, `chunk.enabled`, `chunk.max-distance`, `chunk.batch-size`, `chunk.timeout`. Each warning names the module, the file's path and the key, says the key no longer has any effect, says where the setting went (for `messages.prefix`, nowhere new: nothing ever read it, and a broadcast's prefix is part of that broadcast's own `messages.*` text; for the four chunk keys, nowhere, since that feature was removed), and tells the operator to delete the key to silence it; the line comes from the language file, so it follows the `language` setting. Nothing is logged when the file holds none of them, when the file is absent, or when it cannot be parsed — the framework's own config loading already reports an unparseable file, and a second message would only add noise. Deleting a key from `CleanerConfig` stops the framework WRITING it into a fresh file but does nothing to files already on disk: the framework writes a declared default only for a key that is missing, so an existing install keeps the key, keeps its value, and would otherwise get no indication the value stopped meaning anything | event | automatic, at module enable and at `/ul reload UltiCleaner` | n/a | n/a | admin | brief | UltiCleaner#registerSelf, UltiCleaner#onReload, RemovedConfigKeys#warnAboutLeftovers |
+| ulticleaner.lifecycle.legacy-message-defaults | On module enable and again on every `/ul reload`, after the framework has re-read `config/cleaner.yml`: each of the seven `messages.*` values that is exactly the Chinese default an earlier version shipped is replaced with a blank value, and the file is saved, so those broadcasts use the language file's text in the server's language; a value that differs in any way (an operator's edit) is kept, and a blank value is never rewritten again, so the file is saved only when something changed | event | automatic, at module enable and at `/ul reload UltiCleaner` | n/a | n/a | admin | brief | UltiCleaner#registerSelf, UltiCleaner#onReload, CleanerConfig#migrateLegacyDefaults |
 | ulticleaner.lifecycle.reload | Rebuild `CleanerService`'s item-whitelist, entity-type and world-blacklist caches from the just-reloaded `config/cleaner.yml`, reset both the item and the entity cleanup countdowns to the reloaded `item.interval` and `entity.interval` values, and log the module's own `cleaner_reloaded` line, after the framework has already re-read the config file | event | `/ul reload UltiCleaner` (framework calls `reloadSelf()`, which runs its own steps first, then invokes this hook) | n/a | n/a | admin | brief | UltiCleaner#onReload, CleanerService#reload |
+
+## Language
+
+Every chat line, the command description and every console line this module writes goes through
+the framework's language catalogue (`lang/en.yml`, `lang/zh.yml`), so it follows the framework-wide
+`language` setting (`plugins/UltiTools/config.yml`); the seven broadcast messages do too while their
+`messages.*` value is blank (see the Conventions note). Two JUnit guards
+(`UltiCleanerLanguageCatalogueTest`, `UltiCleanerCjkLiteralScopeTest`) fail the build when a key is
+missing from either catalogue, a catalogue key is read by nothing, or Chinese text appears outside
+one.
+
+| ID | Feature | Kind | How to reach | Permission | Target | Tier | Manual | Source |
+|---|---|---|---|---|---|---|---|---|
+| ulticleaner.i18n.language | All of this module's chat, command-description and console text in the server's language: `lang/en.yml` under `language: en`, `lang/zh.yml` under `language: zh` | config | framework `config.yml: language` | n/a | both | admin | none | `lang/en.yml`, `lang/zh.yml`, every `i18n(...)` call |

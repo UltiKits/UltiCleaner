@@ -1,5 +1,6 @@
 package com.ultikits.plugins.cleaner;
 
+import com.ultikits.plugins.cleaner.config.CleanerConfig;
 import com.ultikits.plugins.cleaner.config.RemovedConfigKeys;
 import com.ultikits.plugins.cleaner.service.CleanerService;
 import com.ultikits.plugins.cleaner.service.TpsAwareScheduler;
@@ -8,6 +9,7 @@ import com.ultikits.ultitools.abstracts.UltiToolsPlugin;
 import com.ultikits.ultitools.annotations.UltiToolsModule;
 
 import java.io.File;
+import java.io.IOException;
 
 /**
  * UltiCleaner - Advanced automatic entity and item cleanup for Minecraft servers.
@@ -32,11 +34,12 @@ public class UltiCleaner extends UltiToolsPlugin {
     @Override
     public boolean registerSelf() {
         // Log server type
-        getLogger().info("Detected server: " + ServerTypeUtil.getServerSoftware());
+        getLogger().info(i18n("log_server_detected").replace("{SERVER}", ServerTypeUtil.getServerSoftware()));
 
         // Tell the operator about keys this version no longer reads but which are still in
         // their own file -- deleting a key from CleanerConfig does nothing to files on disk.
         warnAboutRemovedConfigKeys();
+        blankShippedMessageDefaults();
 
         // Load configuration caches
         CleanerService cleanerService = getContext().getBean(CleanerService.class);
@@ -57,6 +60,7 @@ public class UltiCleaner extends UltiToolsPlugin {
     @Override
     protected void onReload() {
         warnAboutRemovedConfigKeys();
+        blankShippedMessageDefaults();
         CleanerService cleanerService = getContext().getBean(CleanerService.class);
         if (cleanerService != null) {
             cleanerService.reload();
@@ -64,8 +68,29 @@ public class UltiCleaner extends UltiToolsPlugin {
         getLogger().info(i18n("cleaner_reloaded"));
     }
 
+    /**
+     * Blanks every broadcast message in {@code config/cleaner.yml} that still holds a default an
+     * earlier version shipped (all seven were Chinese) and saves the file, so the language file's text
+     * takes over in the server's language; any other value is the operator's and is kept (maintainer
+     * ruling 2026-09-24 (d)). Runs at start-up and on every {@code /ul reload}, after the framework has
+     * re-read the file; a blank value matches no shipped default, so it is never rewritten twice.
+     */
+    private void blankShippedMessageDefaults() {
+        CleanerConfig config = getContext().getBean(CleanerConfig.class);
+        if (config == null || !config.migrateLegacyDefaults()) {
+            return;
+        }
+        try {
+            config.save();
+        } catch (IOException e) {
+            getLogger().warn(i18n("log_config_default_save_failed")
+                    .replace("{FILE}", CONFIG_FILE)
+                    .replace("{ERROR}", String.valueOf(e.getMessage())));
+        }
+    }
+
     private void warnAboutRemovedConfigKeys() {
-        RemovedConfigKeys.warnAboutLeftovers(operatorConfigFile(), getLogger()::warn);
+        RemovedConfigKeys.warnAboutLeftovers(operatorConfigFile(), getLogger()::warn, this);
     }
 
     /**

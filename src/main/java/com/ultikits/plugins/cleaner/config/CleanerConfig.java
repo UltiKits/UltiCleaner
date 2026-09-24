@@ -143,33 +143,81 @@ public class CleanerConfig extends AbstractConfigEntity {
     private int criticalTpsReduction = 50;
     
     // ============ Messages ============
-    @NotEmpty
-    @ConfigEntry(path = "messages.warn", comment = "清理警告消息 ({TIME}为剩余秒数)")
-    private String warnMessage = "&c[清理] &f地面物品将在 &e{TIME} &f秒后清理！";
+    // Blank by default: a blank message is broadcast with the language file's text in the server's
+    // language, resolved when it is sent (maintainer ruling 2026-09-24 (d)). Any other value is the
+    // operator's and is broadcast as written.
+    @ConfigEntry(path = "messages.warn", comment = "清理警告消息 ({TIME}为剩余秒数；留空则使用语言文件中的文本)")
+    private String warnMessage = "";
 
-    @NotEmpty
-    @ConfigEntry(path = "messages.entity-warn", comment = "实体清理警告消息")
-    private String entityWarnMessage = "&c[清理] &f实体将在 &e{TIME} &f秒后清理！";
+    @ConfigEntry(path = "messages.entity-warn", comment = "实体清理警告消息 ({TIME}为剩余秒数；留空则使用语言文件中的文本)")
+    private String entityWarnMessage = "";
 
-    @NotEmpty
-    @ConfigEntry(path = "messages.item-cleaned", comment = "物品清理完成消息 ({COUNT}为清理数量)")
-    private String itemCleanedMessage = "&a[清理] &f已清理 &e{COUNT} &f个地面物品！";
+    @ConfigEntry(path = "messages.item-cleaned", comment = "物品清理完成消息 ({COUNT}为清理数量；留空则使用语言文件中的文本)")
+    private String itemCleanedMessage = "";
 
-    @NotEmpty
-    @ConfigEntry(path = "messages.entity-cleaned", comment = "实体清理完成消息 ({COUNT}为清理数量)")
-    private String entityCleanedMessage = "&a[清理] &f已清理 &e{COUNT} &f个实体！";
+    @ConfigEntry(path = "messages.entity-cleaned", comment = "实体清理完成消息 ({COUNT}为清理数量；留空则使用语言文件中的文本)")
+    private String entityCleanedMessage = "";
 
-    @NotEmpty
-    @ConfigEntry(path = "messages.smart-triggered", comment = "智能清理触发消息")
-    private String smartCleanTriggeredMessage = "&e[清理] &f检测到实体数量过多，正在进行智能清理...";
+    @ConfigEntry(path = "messages.smart-triggered", comment = "智能清理触发消息 (留空则使用语言文件中的文本)")
+    private String smartCleanTriggeredMessage = "";
 
-    @NotEmpty
-    @ConfigEntry(path = "messages.clean-progress", comment = "清理进度消息")
-    private String cleanProgressMessage = "&7[清理] &f清理进度: &e{CURRENT}&f/&e{TOTAL}";
+    @ConfigEntry(path = "messages.clean-progress", comment = "清理进度消息 ({CURRENT}/{TOTAL}；留空则使用语言文件中的文本)")
+    private String cleanProgressMessage = "";
 
-    @NotEmpty
-    @ConfigEntry(path = "messages.clean-cancelled", comment = "清理被取消消息")
-    private String cleanCancelledMessage = "&c[清理] &f清理操作被其他插件取消！";
+    @ConfigEntry(path = "messages.clean-cancelled", comment = "清理被取消消息 (留空则使用语言文件中的文本)")
+    private String cleanCancelledMessage = "";
+
+    // The default each message had in every earlier version, read from this class's history (one
+    // value per key, from the first release until the language file took over). They are here only to
+    // be recognised in an upgraded operator's file and blanked; they are never shown.
+    private static final String SHIPPED_WARN = "&c[清理] &f地面物品将在 &e{TIME} &f秒后清理！";
+    private static final String SHIPPED_ENTITY_WARN = "&c[清理] &f实体将在 &e{TIME} &f秒后清理！";
+    private static final String SHIPPED_ITEM_CLEANED = "&a[清理] &f已清理 &e{COUNT} &f个地面物品！";
+    private static final String SHIPPED_ENTITY_CLEANED = "&a[清理] &f已清理 &e{COUNT} &f个实体！";
+    private static final String SHIPPED_SMART_TRIGGERED = "&e[清理] &f检测到实体数量过多，正在进行智能清理...";
+    private static final String SHIPPED_CLEAN_PROGRESS = "&7[清理] &f清理进度: &e{CURRENT}&f/&e{TOTAL}";
+    private static final String SHIPPED_CLEAN_CANCELLED = "&c[清理] &f清理操作被其他插件取消！";
+
+    /**
+     * Blanks every message that is exactly the default an earlier version shipped, so the language
+     * file's text takes over in the server's language; any other value is the operator's and is kept.
+     * Idempotent: a blank value matches no shipped default. The caller saves the file when this
+     * returns true (maintainer ruling 2026-09-24 (d)).
+     *
+     * @return whether any value was rewritten
+     */
+    public boolean migrateLegacyDefaults() {
+        boolean changed = false;
+        if (SHIPPED_WARN.equals(warnMessage)) {
+            warnMessage = "";
+            changed = true;
+        }
+        if (SHIPPED_ENTITY_WARN.equals(entityWarnMessage)) {
+            entityWarnMessage = "";
+            changed = true;
+        }
+        if (SHIPPED_ITEM_CLEANED.equals(itemCleanedMessage)) {
+            itemCleanedMessage = "";
+            changed = true;
+        }
+        if (SHIPPED_ENTITY_CLEANED.equals(entityCleanedMessage)) {
+            entityCleanedMessage = "";
+            changed = true;
+        }
+        if (SHIPPED_SMART_TRIGGERED.equals(smartCleanTriggeredMessage)) {
+            smartCleanTriggeredMessage = "";
+            changed = true;
+        }
+        if (SHIPPED_CLEAN_PROGRESS.equals(cleanProgressMessage)) {
+            cleanProgressMessage = "";
+            changed = true;
+        }
+        if (SHIPPED_CLEAN_CANCELLED.equals(cleanCancelledMessage)) {
+            cleanCancelledMessage = "";
+            changed = true;
+        }
+        return changed;
+    }
     
     public CleanerConfig() {
         super("config/cleaner.yml");

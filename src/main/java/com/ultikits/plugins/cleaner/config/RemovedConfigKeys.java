@@ -7,6 +7,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import com.ultikits.ultitools.abstracts.UltiToolsPlugin;
+
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -27,26 +29,18 @@ import org.bukkit.configuration.file.YamlConfiguration;
 public final class RemovedConfigKeys {
 
     /**
-     * Every key removed from {@code config/cleaner.yml}, mapped to what an operator should be told
-     * about it. Insertion order is the order the warnings are emitted in.
+     * Every key removed from {@code config/cleaner.yml}, mapped to the language-catalogue key of what
+     * an operator should be told about it. Insertion order is the order the warnings are emitted in.
      */
     private static final Map<String, String> REMOVED;
 
     static {
         Map<String, String> removed = new LinkedHashMap<String, String>();
-        removed.put("messages.prefix",
-                "Nothing ever read this key, so no message was ever prefixed from it and deleting "
-                        + "it changes nothing you see. The prefix in a cleanup broadcast is part of "
-                        + "that broadcast's own text: edit the 'messages.*' key for the message you "
-                        + "want to change (UltiKits/UltiCleaner#18).");
-        String chunk = "Chunk unloading was removed: the server engine already unloads idle chunks "
-                + "by itself, so this module's version could only ever reach the chunks the server "
-                + "deliberately keeps resident. There is no replacement setting "
-                + "(UltiKits/UltiCleaner#27).";
-        removed.put("chunk.enabled", chunk);
-        removed.put("chunk.max-distance", chunk);
-        removed.put("chunk.batch-size", chunk);
-        removed.put("chunk.timeout", chunk);
+        removed.put("messages.prefix", "removed_key_reason_prefix");
+        removed.put("chunk.enabled", "removed_key_reason_chunk");
+        removed.put("chunk.max-distance", "removed_key_reason_chunk");
+        removed.put("chunk.batch-size", "removed_key_reason_chunk");
+        removed.put("chunk.timeout", "removed_key_reason_chunk");
         REMOVED = Collections.unmodifiableMap(removed);
     }
 
@@ -57,7 +51,8 @@ public final class RemovedConfigKeys {
     /**
      * The keys this class knows about, in the order it reports them.
      *
-     * @return an unmodifiable map of removed key path to the guidance printed for it
+     * @return an unmodifiable map of removed key path to the language-catalogue key of the guidance
+     *         printed for it
      */
     public static Map<String, String> removedKeys() {
         return REMOVED;
@@ -73,8 +68,9 @@ public final class RemovedConfigKeys {
      *
      * @param configFile the operator's {@code config/cleaner.yml}; may be {@code null}
      * @param warn       where to send each warning, normally the module logger's warn method
+     * @param plugin     the module, whose language catalogue gives the warning its text
      */
-    public static void warnAboutLeftovers(File configFile, Consumer<String> warn) {
+    public static void warnAboutLeftovers(File configFile, Consumer<String> warn, UltiToolsPlugin plugin) {
         if (configFile == null || !configFile.isFile()) {
             return;
         }
@@ -86,10 +82,13 @@ public final class RemovedConfigKeys {
         }
         for (Map.Entry<String, String> entry : REMOVED.entrySet()) {
             if (yaml.contains(entry.getKey())) {
-                warn.accept("[UltiCleaner] " + configFile.getPath() + " still contains '"
-                        + entry.getKey() + "', which this version no longer reads. "
-                        + entry.getValue()
-                        + " Delete the key from the file to silence this warning.");
+                String reason = "removed_key_reason_prefix".equals(entry.getValue())
+                        ? plugin.i18n("removed_key_reason_prefix")
+                        : plugin.i18n("removed_key_reason_chunk");
+                warn.accept(plugin.i18n("removed_key_warning")
+                        .replace("{FILE}", configFile.getPath())
+                        .replace("{KEY}", entry.getKey())
+                        .replace("{REASON}", reason));
             }
         }
     }
