@@ -1,5 +1,6 @@
 package com.ultikits.plugins.cleaner.config;
 
+import com.ultikits.plugins.cleaner.i18n.CatalogueText;
 import org.junit.jupiter.api.*;
 
 import static org.assertj.core.api.Assertions.*;
@@ -265,53 +266,66 @@ class CleanerConfigTest {
         }
 
         @Test
-        @DisplayName("Should have warn message with {TIME} placeholder")
+        @DisplayName("WarnMessage is blank by default; the language file gives its text with {TIME}")
         void warnMessage() {
             CleanerConfig config = createRealConfig();
-            assertThat(config.getWarnMessage()).contains("{TIME}");
+            assertThat(config.getWarnMessage()).isEmpty();
+            assertThat(CatalogueText.text("en", "item_warn")).contains("{TIME}");
+            assertThat(CatalogueText.text("zh", "item_warn")).contains("{TIME}");
         }
 
         @Test
-        @DisplayName("Should have entity warn message with {TIME} placeholder")
+        @DisplayName("EntityWarnMessage is blank by default; the language file gives its text with {TIME}")
         void entityWarnMessage() {
             CleanerConfig config = createRealConfig();
-            assertThat(config.getEntityWarnMessage()).contains("{TIME}");
+            assertThat(config.getEntityWarnMessage()).isEmpty();
+            assertThat(CatalogueText.text("en", "entity_warn")).contains("{TIME}");
+            assertThat(CatalogueText.text("zh", "entity_warn")).contains("{TIME}");
         }
 
         @Test
-        @DisplayName("Should have item cleaned message with {COUNT} placeholder")
+        @DisplayName("ItemCleanedMessage is blank by default; the language file gives its text with {COUNT}")
         void itemCleanedMessage() {
             CleanerConfig config = createRealConfig();
-            assertThat(config.getItemCleanedMessage()).contains("{COUNT}");
+            assertThat(config.getItemCleanedMessage()).isEmpty();
+            assertThat(CatalogueText.text("en", "item_cleaned")).contains("{COUNT}");
+            assertThat(CatalogueText.text("zh", "item_cleaned")).contains("{COUNT}");
         }
 
         @Test
-        @DisplayName("Should have entity cleaned message with {COUNT} placeholder")
+        @DisplayName("EntityCleanedMessage is blank by default; the language file gives its text with {COUNT}")
         void entityCleanedMessage() {
             CleanerConfig config = createRealConfig();
-            assertThat(config.getEntityCleanedMessage()).contains("{COUNT}");
+            assertThat(config.getEntityCleanedMessage()).isEmpty();
+            assertThat(CatalogueText.text("en", "entity_cleaned")).contains("{COUNT}");
+            assertThat(CatalogueText.text("zh", "entity_cleaned")).contains("{COUNT}");
         }
 
         @Test
-        @DisplayName("Should have smart clean triggered message")
+        @DisplayName("SmartCleanTriggeredMessage is blank by default; the language file gives its text")
         void smartCleanTriggeredMessage() {
             CleanerConfig config = createRealConfig();
-            assertThat(config.getSmartCleanTriggeredMessage()).isNotEmpty();
+            assertThat(config.getSmartCleanTriggeredMessage()).isEmpty();
+            assertThat(CatalogueText.text("en", "smart_clean_triggered")).isNotEmpty();
+            assertThat(CatalogueText.text("zh", "smart_clean_triggered")).isNotEmpty();
         }
 
         @Test
-        @DisplayName("Should have clean progress message with placeholders")
+        @DisplayName("CleanProgressMessage is blank by default; the language file gives its text with {CURRENT} and {TOTAL}")
         void cleanProgressMessage() {
             CleanerConfig config = createRealConfig();
-            assertThat(config.getCleanProgressMessage()).contains("{CURRENT}");
-            assertThat(config.getCleanProgressMessage()).contains("{TOTAL}");
+            assertThat(config.getCleanProgressMessage()).isEmpty();
+            assertThat(CatalogueText.text("en", "clean_progress")).contains("{CURRENT}", "{TOTAL}");
+            assertThat(CatalogueText.text("zh", "clean_progress")).contains("{CURRENT}", "{TOTAL}");
         }
 
         @Test
-        @DisplayName("Should have clean cancelled message")
+        @DisplayName("CleanCancelledMessage is blank by default; the language file gives its text")
         void cleanCancelledMessage() {
             CleanerConfig config = createRealConfig();
-            assertThat(config.getCleanCancelledMessage()).isNotEmpty();
+            assertThat(config.getCleanCancelledMessage()).isEmpty();
+            assertThat(CatalogueText.text("en", "clean_cancelled")).isNotEmpty();
+            assertThat(CatalogueText.text("zh", "clean_cancelled")).isNotEmpty();
         }
     }
 
