@@ -7,6 +7,9 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.ultikits.plugins.cleaner.i18n.CatalogueText;
+import com.ultikits.plugins.cleaner.i18n.CleanerSeams;
+import com.ultikits.ultitools.abstracts.UltiToolsPlugin;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -14,6 +17,9 @@ import org.junit.jupiter.api.io.TempDir;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * A deleted key stays in the operator's file forever, so the only thing separating "this module
@@ -48,6 +54,18 @@ class RemovedConfigKeysTest {
 
     private final List<String> warnings = new ArrayList<>();
 
+    /**
+     * The module, answering {@code i18n} from its English catalogue: the assertions below quote the
+     * English guidance an operator reads under {@code language: en}.
+     */
+    private static final UltiToolsPlugin ENGLISH = englishPlugin();
+
+    private static UltiToolsPlugin englishPlugin() {
+        UltiToolsPlugin plugin = mock(UltiToolsPlugin.class);
+        when(plugin.i18n(anyString())).thenAnswer(CatalogueText.answer("en"));
+        return plugin;
+    }
+
     private File write(File dir, String name, String body) throws IOException {
         File file = new File(dir, name);
         Files.write(file.toPath(), body.getBytes(StandardCharsets.UTF_8));
@@ -63,7 +81,7 @@ class RemovedConfigKeysTest {
         void reportsEveryLeftoverKey(@TempDir File dir) throws IOException {
             File config = write(dir, "cleaner.yml", FILE_WITH_EVERY_REMOVED_KEY);
 
-            RemovedConfigKeys.warnAboutLeftovers(config, warnings::add);
+            CleanerSeams.warnAboutLeftovers(config, warnings::add, ENGLISH);
 
             assertThat(warnings).hasSize(5);
             assertThat(warnings).allSatisfy(line -> {
@@ -85,7 +103,7 @@ class RemovedConfigKeysTest {
             // which is what makes this zero a measured zero rather than a check that never fires.
             File config = write(dir, "cleaner.yml", FILE_WITH_NO_REMOVED_KEY);
 
-            RemovedConfigKeys.warnAboutLeftovers(config, warnings::add);
+            CleanerSeams.warnAboutLeftovers(config, warnings::add, ENGLISH);
 
             assertThat(warnings).isEmpty();
         }
@@ -96,7 +114,7 @@ class RemovedConfigKeysTest {
             File config = write(dir, "cleaner.yml",
                     "messages:\n  prefix: '&a[Cleaner]'\n  warn: 'x'\n");
 
-            RemovedConfigKeys.warnAboutLeftovers(config, warnings::add);
+            CleanerSeams.warnAboutLeftovers(config, warnings::add, ENGLISH);
 
             assertThat(warnings).hasSize(1);
             assertThat(warnings.get(0)).contains("messages.prefix");
@@ -119,7 +137,7 @@ class RemovedConfigKeysTest {
         void chunkGuidanceNamesTheRemoval(@TempDir File dir) throws IOException {
             File config = write(dir, "cleaner.yml", "chunk:\n  enabled: true\n");
 
-            RemovedConfigKeys.warnAboutLeftovers(config, warnings::add);
+            CleanerSeams.warnAboutLeftovers(config, warnings::add, ENGLISH);
 
             assertThat(warnings).hasSize(1);
             assertThat(warnings.get(0)).contains("chunk.enabled");
@@ -129,7 +147,7 @@ class RemovedConfigKeysTest {
         @Test
         @DisplayName("Says nothing when the file does not exist")
         void silentWhenTheFileIsMissing(@TempDir File dir) {
-            RemovedConfigKeys.warnAboutLeftovers(new File(dir, "absent.yml"), warnings::add);
+            CleanerSeams.warnAboutLeftovers(new File(dir, "absent.yml"), warnings::add, ENGLISH);
 
             assertThat(warnings).isEmpty();
         }
@@ -137,7 +155,7 @@ class RemovedConfigKeysTest {
         @Test
         @DisplayName("Says nothing, and does not throw, for a null file")
         void silentForNull() {
-            assertThatCode(() -> RemovedConfigKeys.warnAboutLeftovers(null, warnings::add))
+            assertThatCode(() -> CleanerSeams.warnAboutLeftovers(null, warnings::add, ENGLISH))
                     .doesNotThrowAnyException();
 
             assertThat(warnings).isEmpty();
@@ -148,7 +166,7 @@ class RemovedConfigKeysTest {
         void silentForUnparseableYaml(@TempDir File dir) throws IOException {
             File config = write(dir, "cleaner.yml", "messages:\n  prefix: '&a[Cleaner]\n\t- broken\n");
 
-            assertThatCode(() -> RemovedConfigKeys.warnAboutLeftovers(config, warnings::add))
+            assertThatCode(() -> CleanerSeams.warnAboutLeftovers(config, warnings::add, ENGLISH))
                     .doesNotThrowAnyException();
 
             assertThat(warnings).isEmpty();
@@ -157,7 +175,7 @@ class RemovedConfigKeysTest {
         @Test
         @DisplayName("Says nothing when handed a directory rather than a file")
         void silentForADirectory(@TempDir File dir) {
-            RemovedConfigKeys.warnAboutLeftovers(dir, warnings::add);
+            CleanerSeams.warnAboutLeftovers(dir, warnings::add, ENGLISH);
 
             assertThat(warnings).isEmpty();
         }
