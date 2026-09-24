@@ -59,6 +59,25 @@ public final class RemovedConfigKeys {
     }
 
     /**
+     * The guidance printed for one removed key, from the language file. Each removed key names its own
+     * catalogue text here, so a key added to {@link #REMOVED} without a case fails loudly instead of
+     * being given another key's explanation.
+     */
+    private static String reasonFor(String removedKey, UltiToolsPlugin plugin) {
+        switch (removedKey) {
+            case "messages.prefix":
+                return plugin.i18n("removed_key_reason_prefix");
+            case "chunk.enabled":
+            case "chunk.max-distance":
+            case "chunk.batch-size":
+            case "chunk.timeout":
+                return plugin.i18n("removed_key_reason_chunk");
+            default:
+                throw new IllegalStateException("No guidance for removed key " + removedKey);
+        }
+    }
+
+    /**
      * Emit one warning per removed key that is still present in the operator's configuration file.
      * <p>
      * Silent when the file is absent or unreadable -- there is then nothing to report and nothing
@@ -82,9 +101,7 @@ public final class RemovedConfigKeys {
         }
         for (Map.Entry<String, String> entry : REMOVED.entrySet()) {
             if (yaml.contains(entry.getKey())) {
-                String reason = "removed_key_reason_prefix".equals(entry.getValue())
-                        ? plugin.i18n("removed_key_reason_prefix")
-                        : plugin.i18n("removed_key_reason_chunk");
+                String reason = reasonFor(entry.getKey(), plugin);
                 warn.accept(plugin.i18n("removed_key_warning")
                         .replace("{FILE}", configFile.getPath())
                         .replace("{KEY}", entry.getKey())
