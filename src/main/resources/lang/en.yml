@@ -62,7 +62,7 @@ tps_status_normal: "&a{TPS} (Normal)"
 # Console
 log_server_detected: "Detected server: {SERVER}"
 log_tps_monitor_initialized: "TPS monitor initialized. Server: {SERVER}"
-log_config_default_save_failed: "Could not save {FILE} after replacing its old default messages with blanks: {ERROR}"
+log_config_default_save_failed: "Could not save {FILE} after writing its messages in the server's language: {ERROR}"
 log_unknown_entity_type: "Unknown entity type: {TYPE}"
 removed_key_warning: "[UltiCleaner] {FILE} still contains '{KEY}', which this version no longer reads. {REASON} Delete the key from the file to silence this warning."
 removed_key_reason_prefix: "Nothing ever read this key, so no message was ever prefixed from it and deleting it changes nothing you see. The prefix in a cleanup broadcast is part of that broadcast's own text: edit the 'messages.*' key for the message you want to change (UltiKits/UltiCleaner#18)."

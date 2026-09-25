@@ -2,6 +2,9 @@ package com.ultikits.plugins.cleaner.config;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
 
 import com.ultikits.ultitools.abstracts.AbstractConfigEntity;
 import com.ultikits.ultitools.annotations.ConfigEntity;
@@ -143,33 +146,40 @@ public class CleanerConfig extends AbstractConfigEntity {
     private int criticalTpsReduction = 50;
     
     // ============ Messages ============
-    // Blank by default: a blank message is broadcast with the language file's text in the server's
-    // language, resolved when it is sent (maintainer ruling 2026-09-24 (d)). Any other value is the
-    // operator's and is broadcast as written.
-    @ConfigEntry(path = "messages.warn", comment = "清理警告消息 ({TIME}为剩余秒数；留空则使用语言文件中的文本)")
-    private String warnMessage = "";
+    // Each message's Java default is the one it shipped with in every earlier version, which the
+    // framework writes for a missing key; materializeText() then writes the language file's text in
+    // the server's language while the value is still built-in text (maintainer decision 2026-09-25).
+    @NotEmpty
+    @ConfigEntry(path = "messages.warn", comment = "清理警告消息 ({TIME}为剩余秒数)")
+    private String warnMessage = SHIPPED_WARN;
 
-    @ConfigEntry(path = "messages.entity-warn", comment = "实体清理警告消息 ({TIME}为剩余秒数；留空则使用语言文件中的文本)")
-    private String entityWarnMessage = "";
+    @NotEmpty
+    @ConfigEntry(path = "messages.entity-warn", comment = "实体清理警告消息")
+    private String entityWarnMessage = SHIPPED_ENTITY_WARN;
 
-    @ConfigEntry(path = "messages.item-cleaned", comment = "物品清理完成消息 ({COUNT}为清理数量；留空则使用语言文件中的文本)")
-    private String itemCleanedMessage = "";
+    @NotEmpty
+    @ConfigEntry(path = "messages.item-cleaned", comment = "物品清理完成消息 ({COUNT}为清理数量)")
+    private String itemCleanedMessage = SHIPPED_ITEM_CLEANED;
 
-    @ConfigEntry(path = "messages.entity-cleaned", comment = "实体清理完成消息 ({COUNT}为清理数量；留空则使用语言文件中的文本)")
-    private String entityCleanedMessage = "";
+    @NotEmpty
+    @ConfigEntry(path = "messages.entity-cleaned", comment = "实体清理完成消息 ({COUNT}为清理数量)")
+    private String entityCleanedMessage = SHIPPED_ENTITY_CLEANED;
 
-    @ConfigEntry(path = "messages.smart-triggered", comment = "智能清理触发消息 (留空则使用语言文件中的文本)")
-    private String smartCleanTriggeredMessage = "";
+    @NotEmpty
+    @ConfigEntry(path = "messages.smart-triggered", comment = "智能清理触发消息")
+    private String smartCleanTriggeredMessage = SHIPPED_SMART_TRIGGERED;
 
-    @ConfigEntry(path = "messages.clean-progress", comment = "清理进度消息 ({CURRENT}/{TOTAL}；留空则使用语言文件中的文本)")
-    private String cleanProgressMessage = "";
+    @NotEmpty
+    @ConfigEntry(path = "messages.clean-progress", comment = "清理进度消息")
+    private String cleanProgressMessage = SHIPPED_CLEAN_PROGRESS;
 
-    @ConfigEntry(path = "messages.clean-cancelled", comment = "清理被取消消息 (留空则使用语言文件中的文本)")
-    private String cleanCancelledMessage = "";
+    @NotEmpty
+    @ConfigEntry(path = "messages.clean-cancelled", comment = "清理被取消消息")
+    private String cleanCancelledMessage = SHIPPED_CLEAN_CANCELLED;
 
     // The default each message had in every earlier version, read from this class's history (one
-    // value per key, from the first release until the language file took over). They are here only to
-    // be recognised in an upgraded operator's file and blanked; they are never shown.
+    // value per key). Each is the field's Java default and one of the values materializeText()
+    // recognises as built-in text in an operator's file, compared byte for byte.
     private static final String SHIPPED_WARN = "&c[清理] &f地面物品将在 &e{TIME} &f秒后清理！";
     private static final String SHIPPED_ENTITY_WARN = "&c[清理] &f实体将在 &e{TIME} &f秒后清理！";
     private static final String SHIPPED_ITEM_CLEANED = "&a[清理] &f已清理 &e{COUNT} &f个地面物品！";
@@ -179,44 +189,43 @@ public class CleanerConfig extends AbstractConfigEntity {
     private static final String SHIPPED_CLEAN_CANCELLED = "&c[清理] &f清理操作被其他插件取消！";
 
     /**
-     * Blanks every message that is exactly the default an earlier version shipped, so the language
-     * file's text takes over in the server's language; any other value is the operator's and is kept.
-     * Idempotent: a blank value matches no shipped default. The caller saves the file when this
-     * returns true (maintainer ruling 2026-09-24 (d)).
+     * Writes every broadcast message in the server's language (maintainer decision 2026-09-25,
+     * UltiKits/UltiCleaner#17): each message whose value is still built-in text -- the default an
+     * earlier version shipped, or this jar's text for it in any language -- and differs from the
+     * current text is replaced with {@code text}'s current text, when that text fits the setting's own
+     * limits. Any other value is the operator's and is kept. Idempotent. Must run after the module's
+     * language is loaded ({@code registerSelf()} and {@code onReload()}), never from a change listener;
+     * the caller saves the file when this returns {@code true}.
      *
+     * @param text the module's {@code i18n}: catalogue key to text in the server's language
      * @return whether any value was rewritten
      */
-    public boolean migrateLegacyDefaults() {
-        boolean changed = false;
-        if (SHIPPED_WARN.equals(warnMessage)) {
-            warnMessage = "";
-            changed = true;
+    public boolean materializeText(Function<String, String> text) {
+        Map<String, Map<String, String>> jar = ConfigTextDefaults.jarCatalogues(CleanerConfig.class);
+        boolean[] changed = {false};
+        warnMessage = follow("warnMessage", warnMessage, text, jar, "item_warn", SHIPPED_WARN, changed);
+        entityWarnMessage = follow("entityWarnMessage", entityWarnMessage, text, jar, "entity_warn", SHIPPED_ENTITY_WARN, changed);
+        itemCleanedMessage = follow("itemCleanedMessage", itemCleanedMessage, text, jar, "item_cleaned", SHIPPED_ITEM_CLEANED, changed);
+        entityCleanedMessage = follow("entityCleanedMessage", entityCleanedMessage, text, jar, "entity_cleaned", SHIPPED_ENTITY_CLEANED, changed);
+        smartCleanTriggeredMessage = follow("smartCleanTriggeredMessage", smartCleanTriggeredMessage, text, jar, "smart_clean_triggered", SHIPPED_SMART_TRIGGERED, changed);
+        cleanProgressMessage = follow("cleanProgressMessage", cleanProgressMessage, text, jar, "clean_progress", SHIPPED_CLEAN_PROGRESS, changed);
+        cleanCancelledMessage = follow("cleanCancelledMessage", cleanCancelledMessage, text, jar, "clean_cancelled", SHIPPED_CLEAN_CANCELLED, changed);
+        return changed[0];
+    }
+
+    /**
+     * {@code value}, or {@code text}'s current text for {@code key} when {@code value} is still built-in
+     * text other than that and the new text fits {@code field}'s constraints; sets {@code changed[0]}
+     * when it replaces.
+     */
+    private static String follow(String field, String value, Function<String, String> text,
+                                 Map<String, Map<String, String>> jar, String key, String shipped, boolean[] changed) {
+        String result = ConfigTextDefaults.materialize(CleanerConfig.class, field, value,
+                ConfigTextDefaults.currentText(text, "", key), ConfigTextDefaults.tracked(jar, "", key, shipped));
+        if (!Objects.equals(result, value)) {
+            changed[0] = true;
         }
-        if (SHIPPED_ENTITY_WARN.equals(entityWarnMessage)) {
-            entityWarnMessage = "";
-            changed = true;
-        }
-        if (SHIPPED_ITEM_CLEANED.equals(itemCleanedMessage)) {
-            itemCleanedMessage = "";
-            changed = true;
-        }
-        if (SHIPPED_ENTITY_CLEANED.equals(entityCleanedMessage)) {
-            entityCleanedMessage = "";
-            changed = true;
-        }
-        if (SHIPPED_SMART_TRIGGERED.equals(smartCleanTriggeredMessage)) {
-            smartCleanTriggeredMessage = "";
-            changed = true;
-        }
-        if (SHIPPED_CLEAN_PROGRESS.equals(cleanProgressMessage)) {
-            cleanProgressMessage = "";
-            changed = true;
-        }
-        if (SHIPPED_CLEAN_CANCELLED.equals(cleanCancelledMessage)) {
-            cleanCancelledMessage = "";
-            changed = true;
-        }
-        return changed;
+        return result;
     }
     
     public CleanerConfig() {

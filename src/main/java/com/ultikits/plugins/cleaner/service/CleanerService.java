@@ -473,42 +473,36 @@ public class CleanerService {
         }
     }
     
-    // ---- Broadcast text: the configured message, or the language file's when it is blank ----
-    // Resolved here, each time a message is sent, and never while the configuration reloads: the
-    // framework reloads configuration before it rebuilds the language, so a value resolved during a
-    // reload would come from the old language (maintainer ruling 2026-09-24 (d)).
-
-    /** The configured text, or {@code catalogueText} when the configured value is blank or unset. */
-    private static String configuredOr(String configured, String catalogueText) {
-        return configured == null || configured.trim().isEmpty() ? catalogueText : configured;
-    }
+    // ---- Broadcast text: exactly the configured message ----
+    // config/cleaner.yml holds each message in the server's language (UltiCleaner#materializeText at
+    // enable and reload, maintainer decision 2026-09-25), so the text sent is the file's text.
 
     private String warnText() {
-        return configuredOr(config.getWarnMessage(), plugin.i18n("item_warn"));
+        return config.getWarnMessage();
     }
 
     private String entityWarnText() {
-        return configuredOr(config.getEntityWarnMessage(), plugin.i18n("entity_warn"));
+        return config.getEntityWarnMessage();
     }
 
     private String itemCleanedText() {
-        return configuredOr(config.getItemCleanedMessage(), plugin.i18n("item_cleaned"));
+        return config.getItemCleanedMessage();
     }
 
     private String entityCleanedText() {
-        return configuredOr(config.getEntityCleanedMessage(), plugin.i18n("entity_cleaned"));
+        return config.getEntityCleanedMessage();
     }
 
     private String smartTriggeredText() {
-        return configuredOr(config.getSmartCleanTriggeredMessage(), plugin.i18n("smart_clean_triggered"));
+        return config.getSmartCleanTriggeredMessage();
     }
 
     private String cleanProgressText() {
-        return configuredOr(config.getCleanProgressMessage(), plugin.i18n("clean_progress"));
+        return config.getCleanProgressMessage();
     }
 
     private String cleanCancelledText() {
-        return configuredOr(config.getCleanCancelledMessage(), plugin.i18n("clean_cancelled"));
+        return config.getCleanCancelledMessage();
     }
 
     /**

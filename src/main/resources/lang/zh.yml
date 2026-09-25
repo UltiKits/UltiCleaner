@@ -62,7 +62,7 @@ tps_status_normal: "&a{TPS} (正常)"
 # 控制台
 log_server_detected: "检测到服务端: {SERVER}"
 log_tps_monitor_initialized: "TPS 监控已初始化。服务端: {SERVER}"
-log_config_default_save_failed: "已将 {FILE} 中的旧默认消息替换为空值，但保存失败: {ERROR}"
+log_config_default_save_failed: "已按服务器语言写入 {FILE} 中的消息，但保存失败: {ERROR}"
 log_unknown_entity_type: "未知的实体类型: {TYPE}"
 removed_key_warning: "[UltiCleaner] {FILE} 仍包含 '{KEY}'，当前版本已不再读取该键。{REASON} 从文件中删除该键即可消除此警告。"
 removed_key_reason_prefix: "从未有任何代码读取这个键，所以从没有消息因它加上前缀，删除它不会改变你看到的任何内容。清理广播中的前缀是该广播自身文本的一部分：要修改某条消息，请编辑对应的 'messages.*' 键（UltiKits/UltiCleaner#18）。"
