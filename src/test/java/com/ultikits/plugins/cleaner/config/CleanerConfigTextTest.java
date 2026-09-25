@@ -51,7 +51,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * {@code config/cleaner.yml} holds every broadcast message in the server's language, and the module
- * broadcasts exactly what the file holds (maintainer decision 2026-09-25, 17-CONTEXT D-16; UltiKits/UltiCleaner#17).
+ * broadcasts exactly what the file holds (maintainer decision 2026-09-25; UltiKits/UltiCleaner#17).
  * A value that is still built-in text — any language's text from this jar, or the default an earlier
  * version shipped — follows {@code language} at enable and on reload, in both
  * directions; anything else is the operator's and is kept byte for byte. Every case runs the framework's
@@ -308,6 +308,9 @@ class CleanerConfigTextTest {
         byte[] before = bytes();
 
         language[0] = "zh";
+        // This module registers no change listener, and the framework registers none for it, so nothing
+        // can write the file before the framework rebuilds the language; pinned so that adding one is seen.
+        assertThat(config.getChangeListeners()).isEmpty();
         for (ConfigChangeListener listener : new ArrayList<>(config.getChangeListeners())) {
             listener.onConfigReload(config);
         }
