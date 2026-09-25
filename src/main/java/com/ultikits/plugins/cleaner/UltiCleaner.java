@@ -1,5 +1,6 @@
 package com.ultikits.plugins.cleaner;
 
+import com.ultikits.plugins.cleaner.config.ConfigTextDefaults;
 import com.ultikits.plugins.cleaner.config.CleanerConfig;
 import com.ultikits.plugins.cleaner.config.RemovedConfigKeys;
 import com.ultikits.plugins.cleaner.service.CleanerService;
@@ -76,10 +77,13 @@ public class UltiCleaner extends UltiToolsPlugin {
      * loaded -- never from a configuration change listener, which the framework fires before it reloads
      * the language. A value already in the current language matches nothing to replace, so a second
      * start writes nothing.
+     * The text comes from this jar's own catalogue for the server's language, not from {@code i18n} (which
+     * reads the operator's extracted language file first), so every value written is one the next pass
+     * recognises (orchestrator ruling O3, 2026-09-25).
      */
     private void writeConfigTextInServerLanguage() {
         CleanerConfig config = getContext().getBean(CleanerConfig.class);
-        if (config == null || !config.materializeText(this::i18n)) {
+        if (config == null || !config.materializeText(ConfigTextDefaults.jarLanguage(CleanerConfig.class, getLanguageCode())::getLocalizedText)) {
             return;
         }
         try {

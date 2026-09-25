@@ -33,12 +33,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   Chinese text, so `language: en` had no effect on any cleanup broadcast. A setting that is still built-in
   text — in any language, or a default an earlier version shipped — follows `language`: it is rewritten
   when the module starts or after `/ul reload`. A setting you edited is kept. To keep a built-in text but
-  stop it following `language`, change at least one character (UltiKits/UltiCleaner#17).
+  stop it following `language`, change at least one character (UltiKits/UltiCleaner#17). The text written is this module's built-in text: edit these settings in `config/cleaner.yml`; an edit of the extracted
+  language file does not change them (earlier versions never read them from the language file either).
 - `config/cleaner.yml` 中的消息设置——七条广播消息（`messages.warn`、`messages.entity-warn`、`messages.item-cleaned`、
   `messages.entity-cleaned`、`messages.smart-triggered`、`messages.clean-progress`、`messages.clean-cancelled`）——
   在模块启动时按服务器语言写入，文件内容即模块广播的内容；此前它们是写死的中文，`language: en` 对任何清理广播都不起作用。
   仍为内置文本（任一语言的内置文本，或旧版本的出厂默认值）的设置会跟随 `language`：模块启动或执行 `/ul reload` 后改写为
-  当前语言的文本。你改过的设置保持不变。若想保留内置文本又不让它跟随语言，请至少改动一个字符（UltiKits/UltiCleaner#17）。
+  当前语言的文本。你改过的设置保持不变。若想保留内置文本又不让它跟随语言，请至少改动一个字符（UltiKits/UltiCleaner#17）。写入的是本模块的内置文本：请在 `config/cleaner.yml` 中修改这些设置；修改已解压的语言文件不会改变它们（旧版本同样从不从语言文件读取它们）。
 
 ### Fixed
 
