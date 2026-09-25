@@ -77,6 +77,13 @@ class UltiCleanerLanguageCatalogueTest {
             //                 + "everything else to backup.reason.unknown",
             //         "backup.reason.manual", "backup.reason.auto", "backup.reason.death",
             //         "backup.reason.quit", "backup.reason.admin", "backup.reason.unknown")
+            new DynamicSite("src/main/java/com/ultikits/plugins/cleaner/UltiCleaner.java",
+                    "::i18n",
+                    "UltiCleaner#writeConfigTextInServerLanguage passes this::i18n to CleanerConfig#materializeText, "
+                            + "which asks it for exactly the catalogue key of each of the seven broadcast messages "
+                            + "(maintainer decision 2026-09-25, config text written in the server's language)",
+                    "item_warn", "entity_warn", "item_cleaned", "entity_cleaned", "smart_clean_triggered",
+                    "clean_progress", "clean_cancelled")
     ));
 
     private static List<SourceFile> sources;
