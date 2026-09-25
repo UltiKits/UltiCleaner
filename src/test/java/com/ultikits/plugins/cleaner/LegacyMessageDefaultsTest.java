@@ -163,9 +163,12 @@ class LegacyMessageDefaultsTest {
         when(plugin.i18n(anyString())).thenAnswer(CatalogueText.answer("zh"));
         when(plugin.registerSelf()).thenCallRealMethod();
 
+        String template = CatalogueText.entries("zh").get("log_config_default_save_failed");
+        String expected = template == null ? "<lang/zh has no log_config_default_save_failed>"
+                : template.replace("{FILE}", "config/cleaner.yml").replace("{ERROR}", "disk full");
+
         plugin.registerSelf();
 
-        verify(logger).warn(CatalogueText.text("zh", "log_config_default_save_failed")
-                .replace("{FILE}", "config/cleaner.yml").replace("{ERROR}", "disk full"));
+        verify(logger).warn(expected);
     }
 }
