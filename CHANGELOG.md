@@ -53,7 +53,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   English text: the detected-server and TPS-monitor start-up lines, an unknown entity type in
   `entity.types`, the TPS band shown by `/clean check` and `/clean status` (`Normal`, `Low`,
   `Critical`), and the warning about a key this version no longer reads. Their English wording is
-  unchanged except the in-progress reply, which now reads `Cleaning in progress, please wait...`.
+  unchanged.
 - `language: en` 现在对 `/clean` 打印的全部内容（开始清理、清理进行中、`check`、`status` 与帮助）以及命令描述生效；
   这些内容原先在任何语言下都是写死的中文，而语言文件中其实已有其中大部分的英文文本（UltiKits/UltiCleaner#17）。
   `language: zh` 现在也对原先写死为英文的控制台日志生效：检测到的服务端与 TPS 监控启动行、`entity.types` 中的未知实体类型、
