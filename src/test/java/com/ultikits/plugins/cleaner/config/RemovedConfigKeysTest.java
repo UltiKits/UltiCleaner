@@ -126,7 +126,7 @@ class RemovedConfigKeysTest {
             // `grep -rn "i18n(" src/main/java` returns two console log lines and nothing else, so
             // every broadcast is read from the configuration and the catalogue's own copies of
             // these messages are read by nobody. Telling an operator otherwise inside the very
-            // mechanism this wave added to stop false statements of behaviour would be the defect
+            // mechanism this change added to stop false statements of behaviour would be the defect
             // it exists to remove.
             assertThat(warnings.get(0)).contains("messages.*");
             assertThat(warnings.get(0)).doesNotContain("language catalogue");

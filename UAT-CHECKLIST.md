@@ -75,8 +75,7 @@ for real-machine verification, not user-facing documentation.
 - **Scheduled-row wait discipline:** every scheduled row's Preconditions name the exact
   `config/cleaner.yml` key that shortens its interval below the shipped default, and the value to
   set it to, so the executor never has to guess a wait. A row with no stated wait would be a row
-  the executor cannot run without guessing, and a guessed wait produces a false `blocked` — see
-  the plan's own instruction for this repository.
+  the executor cannot run without guessing, and a guessed wait produces a false `blocked`.
 
 ## Commands
 
