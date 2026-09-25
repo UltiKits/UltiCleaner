@@ -78,10 +78,11 @@ class UltiCleanerLanguageCatalogueTest {
             //         "backup.reason.manual", "backup.reason.auto", "backup.reason.death",
             //         "backup.reason.quit", "backup.reason.admin", "backup.reason.unknown")
             new DynamicSite("src/main/java/com/ultikits/plugins/cleaner/UltiCleaner.java",
-                    "::i18n",
-                    "UltiCleaner#writeConfigTextInServerLanguage passes this::i18n to CleanerConfig#materializeText, "
-                            + "which asks it for exactly the catalogue key of each of the seven broadcast messages "
-                            + "(maintainer decision 2026-09-25, config text written in the server's language)",
+                    "::getLocalizedText",
+                    "UltiCleaner#writeConfigTextInServerLanguage passes the jar catalogue's getLocalizedText "
+                            + "(ConfigTextDefaults#jarLanguage) to CleanerConfig#materializeText, which asks it for exactly the "
+                            + "catalogue key of the seven broadcast messages (maintainer decision 2026-09-25 and orchestrator "
+                            + "ruling O3: config text written in the server's language, from the module jar's own catalogue)",
                     "item_warn", "entity_warn", "item_cleaned", "entity_cleaned", "smart_clean_triggered",
                     "clean_progress", "clean_cancelled")
     ));
