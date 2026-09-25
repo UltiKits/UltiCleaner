@@ -16,7 +16,7 @@ for real-machine verification, not user-facing documentation.
 > interval key each scheduled row names). Dispatching this
 > repository alongside another would either force the other repository's rows to share that same
 > wait window for no benefit, or force this repository's waits to serialize behind unrelated rows
-> — plan 10-16 schedules `UltiCleaner` alone for exactly this reason. The **five** rows under
+> — which is why `UltiCleaner` is scheduled alone. The **five** rows under
 > `## Lifecycle Hooks` add more on top of those 35: `ulticleaner.lifecycle.reload` adds roughly 25
 > seconds, plus up to about 40 more if its step 1 has to wait for the item countdown to restart;
 > `ulticleaner.lifecycle.removed-key-warning` adds **two full server stop/start cycles**, and
@@ -33,10 +33,10 @@ for real-machine verification, not user-facing documentation.
 - **Columns:** `ID`, `Preconditions`, `Steps`, `Expected`, `Layer`, `Covers`.
 - **ID:** cites its `FEATURES.md` ID verbatim. A negative case suffixes the checklist ID only,
   as `.neg-<slug>` — a negative case still tests the same feature, so the base ID is unchanged.
-- **Layer**, copied verbatim from Laojun's own `ultitools-real-client-uat` skill so no
+- **Layer**, copied verbatim from the real-client acceptance tooling's fixed vocabulary so no
   translation step exists at dispatch time: `protocol`, `java-client`, `os-input`, `pixel`,
   `server`, `human`.
-- **Human-authenticated-session rows (D-27b):** a row whose Steps can only be exercised through
+- **Human-authenticated-session rows:** a row whose Steps can only be exercised through
   the maintainer's own authenticated UltiCloud panel session carries the fixed Preconditions
   phrase `maintainer-authenticated UltiCloud panel session (personal credentials)` and Layer
   `human`. This repository has no such row — it has no panel-capability surface of its own — so
@@ -47,14 +47,14 @@ for real-machine verification, not user-facing documentation.
   Expected states that absence explicitly, as its own observable claim, rather than being silently
   skipped. `messages.prefix` used to be the other example here; it was deleted rather than wired
   (`UltiKits/UltiCleaner#18`), so it is no longer a key with no effect — it is no longer a key.
-- **Covers** back-references a Phase 9 GUI-excluded class name; left blank when no such class
-  applies. This repository has NO entry in `.planning/phases/09-module-ecosystem-readiness-and-
-  test-coverage/gui-exclusions/` at all (it ships no GUI page of any generation), so every row's
+- **Covers** back-references a GUI class excluded from the JaCoCo coverage gate; left blank when no such class
+  applies. This repository excludes no GUI class from the coverage gate at all (it ships no GUI
+  page of any generation), so every row's
   `Covers` cell below is blank — a structural fact, not an oversight.
 - A row whose Preconditions name a prior CHECKLIST row must appear after that row in file order —
   asserted mechanically: for every row, every checklist ID cited in its Preconditions cell must
-  have a strictly smaller line number in this file than the row citing it (sweep class 8, D-27a).
-- **Config-per-file rule (D-06):** one checklist row per `@ConfigEntity`-annotated class, never
+  have a strictly smaller line number in this file than the row citing it.
+- **Config-per-file rule:** one checklist row per `@ConfigEntity`-annotated class, never
   one row per key. This module ships exactly one `@ConfigEntity` (`CleanerConfig`,
   `config/cleaner.yml`), so exactly one config row exists below (ID suffixed `-yml`,
   `ulticleaner.config.cleaner-yml`). This module ships no Maven-filtered (build-time) config file,
@@ -70,7 +70,7 @@ for real-machine verification, not user-facing documentation.
   already-extracted language file, `UltiKits/UltiTools-Reborn#459`; `ulticleaner.i18n.language`).
 - **Config text rows:** `ulticleaner.config.cleaner.materialize-fresh` and `ulticleaner.config.cleaner.materialize-switch`
   exercise `FEATURES.md`'s `ulticleaner.lifecycle.legacy-message-defaults` on a fresh file and across a `language`
-  switch; they are named by the phase's config-text convention (`<prefix>.config.<file stem>.materialize-*`)
+  switch; they are named by the config-text naming convention (`<prefix>.config.<file stem>.materialize-*`)
   rather than by that ID, and the upgrade case keeps the existing row `ulticleaner.lifecycle.legacy-message-defaults`.
 - **Scheduled-row wait discipline:** every scheduled row's Preconditions name the exact
   `config/cleaner.yml` key that shortens its interval below the shipped default, and the value to
@@ -102,7 +102,7 @@ for real-machine verification, not user-facing documentation.
 
 ## Configuration
 
-One row per `@ConfigEntity` class (D-06's config-per-file rule), not per key: `CleanerConfig`
+One row per `@ConfigEntity` class (the config-per-file rule), not per key: `CleanerConfig`
 (`config/cleaner.yml`, 33 keys), matching `FEATURES.md`'s `## Configuration` section exactly.
 This row confirms every key is present at its documented default, confirms that the five keys this
 version removed are absent from a freshly written file, then flips one representative

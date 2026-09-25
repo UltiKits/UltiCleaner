@@ -81,8 +81,8 @@ class UltiCleanerLanguageCatalogueTest {
                     "::getLocalizedText",
                     "UltiCleaner#writeConfigTextInServerLanguage passes the jar catalogue's getLocalizedText "
                             + "(ConfigTextDefaults#jarLanguage) to CleanerConfig#materializeText, which asks it for exactly the "
-                            + "catalogue key of the seven broadcast messages (maintainer decision 2026-09-25 and orchestrator "
-                            + "ruling O3: config text written in the server's language, from the module jar's own catalogue)",
+                            + "catalogue key of the seven broadcast messages ("
+                            + "config text written in the server's language, from the module jar's own catalogue)",
                     "item_warn", "entity_warn", "item_cleaned", "entity_cleaned", "smart_clean_triggered",
                     "clean_progress", "clean_cancelled")
     ));
@@ -743,7 +743,7 @@ class UltiCleanerLanguageCatalogueTest {
         }
 
         @Test
-        @DisplayName("a call right after a greater-than comparison is a call (gate-1 finding 1)")
+        @DisplayName("a call right after a greater-than comparison is a call")
         void callAfterComparison() {
             SourceFile f = source("boolean m(int a, int b, int c) { return a < b && c > i18n(\"after.gt\").length(); }");
             assertThat(f.sites).extracting(s -> s.literalKey).containsExactly("after.gt");
