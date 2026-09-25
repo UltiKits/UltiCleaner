@@ -6,6 +6,7 @@ import com.ultikits.ultitools.abstracts.UltiToolsPlugin;
 import com.ultikits.ultitools.annotations.Autowired;
 import com.ultikits.ultitools.annotations.Scheduled;
 import com.ultikits.ultitools.annotations.Service;
+import org.bukkit.ChatColor;
 
 /**
  * TPS-aware scheduler for adaptive cleanup thresholds.
@@ -40,7 +41,7 @@ public class TpsAwareScheduler {
         if (fallbackMonitorEnabled) {
             lastTickTime = System.currentTimeMillis();
         }
-        plugin.getLogger().info("TPS monitor initialized. Server: " + ServerTypeUtil.getServerSoftware());
+        plugin.getLogger().info(plugin.i18n("log_tps_monitor_initialized").replace("{SERVER}", ServerTypeUtil.getServerSoftware()));
     }
 
     /**
@@ -189,12 +190,15 @@ public class TpsAwareScheduler {
      */
     public String getTpsStatus() {
         double tps = getCurrentTps();
+        String value = String.format("%.2f", tps);
+        String text;
         if (isCriticalTps()) {
-            return String.format("§c%.2f (Critical)", tps);
+            text = plugin.i18n("tps_status_critical");
         } else if (isLowTps()) {
-            return String.format("§e%.2f (Low)", tps);
+            text = plugin.i18n("tps_status_low");
         } else {
-            return String.format("§a%.2f (Normal)", tps);
+            text = plugin.i18n("tps_status_normal");
         }
+        return ChatColor.translateAlternateColorCodes('&', text.replace("{TPS}", value));
     }
 }

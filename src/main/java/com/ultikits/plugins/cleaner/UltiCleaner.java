@@ -1,5 +1,7 @@
 package com.ultikits.plugins.cleaner;
 
+import com.ultikits.plugins.cleaner.config.ConfigTextDefaults;
+import com.ultikits.plugins.cleaner.config.CleanerConfig;
 import com.ultikits.plugins.cleaner.config.RemovedConfigKeys;
 import com.ultikits.plugins.cleaner.service.CleanerService;
 import com.ultikits.plugins.cleaner.service.TpsAwareScheduler;
@@ -8,6 +10,7 @@ import com.ultikits.ultitools.abstracts.UltiToolsPlugin;
 import com.ultikits.ultitools.annotations.UltiToolsModule;
 
 import java.io.File;
+import java.io.IOException;
 
 /**
  * UltiCleaner - Advanced automatic entity and item cleanup for Minecraft servers.
@@ -32,11 +35,12 @@ public class UltiCleaner extends UltiToolsPlugin {
     @Override
     public boolean registerSelf() {
         // Log server type
-        getLogger().info("Detected server: " + ServerTypeUtil.getServerSoftware());
+        getLogger().info(i18n("log_server_detected").replace("{SERVER}", ServerTypeUtil.getServerSoftware()));
 
         // Tell the operator about keys this version no longer reads but which are still in
         // their own file -- deleting a key from CleanerConfig does nothing to files on disk.
         warnAboutRemovedConfigKeys();
+        writeConfigTextInServerLanguage();
 
         // Load configuration caches
         CleanerService cleanerService = getContext().getBean(CleanerService.class);
@@ -57,6 +61,7 @@ public class UltiCleaner extends UltiToolsPlugin {
     @Override
     protected void onReload() {
         warnAboutRemovedConfigKeys();
+        writeConfigTextInServerLanguage();
         CleanerService cleanerService = getContext().getBean(CleanerService.class);
         if (cleanerService != null) {
             cleanerService.reload();
@@ -64,8 +69,34 @@ public class UltiCleaner extends UltiToolsPlugin {
         getLogger().info(i18n("cleaner_reloaded"));
     }
 
+    /**
+     * Writes every broadcast message in {@code config/cleaner.yml} that is still built-in text in the
+     * server's language and saves the file once, so the file holds what the module broadcasts; any other
+     * value is the operator's and is kept (maintainer decision 2026-09-25, UltiKits/UltiCleaner#17).
+     * Runs from {@link #registerSelf()} and from {@link #onReload()}, both after the module's language is
+     * loaded -- never from a configuration change listener, which the framework fires before it reloads
+     * the language. A value already in the current language matches nothing to replace, so a second
+     * start writes nothing.
+     * The text comes from this jar's own catalogue for the server's language, not from {@code i18n} (which
+     * reads the operator's extracted language file first), so every value written is one the next pass
+     * recognises.
+     */
+    private void writeConfigTextInServerLanguage() {
+        CleanerConfig config = getContext().getBean(CleanerConfig.class);
+        if (config == null || !config.materializeText(ConfigTextDefaults.jarLanguage(CleanerConfig.class, getLanguageCode())::getLocalizedText)) {
+            return;
+        }
+        try {
+            config.save();
+        } catch (IOException e) {
+            getLogger().warn(i18n("log_config_default_save_failed")
+                    .replace("{FILE}", CONFIG_FILE)
+                    .replace("{ERROR}", String.valueOf(e.getMessage())));
+        }
+    }
+
     private void warnAboutRemovedConfigKeys() {
-        RemovedConfigKeys.warnAboutLeftovers(operatorConfigFile(), getLogger()::warn);
+        RemovedConfigKeys.warnAboutLeftovers(operatorConfigFile(), getLogger()::warn, this);
     }
 
     /**
