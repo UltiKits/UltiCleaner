@@ -23,7 +23,38 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   写入默认值——因此若没有这条警告，一个被改过的值会就此悄无声息地失效。当前检查的键为 `messages.prefix`、
   `chunk.enabled`、`chunk.max-distance`、`chunk.batch-size`、`chunk.timeout`；把它们从文件中删除即可不再提示。
 
+### Changed
+
+- Message settings in `config/cleaner.yml` — the seven broadcast messages (`messages.warn`,
+  `messages.entity-warn`, `messages.item-cleaned`, `messages.entity-cleaned`, `messages.smart-triggered`,
+  `messages.clean-progress`, `messages.clean-cancelled`) — are written in the server's language when the
+  module starts, and the file is what the module broadcasts (for example `messages.item-cleaned:
+  '&a[Cleaner] &fCleaned &e{COUNT} &fground items!'` under `language: en`); previously they were fixed
+  Chinese text, so `language: en` had no effect on any cleanup broadcast. A setting that is still built-in
+  text — in any language, or a default an earlier version shipped — follows `language`: it is rewritten
+  when the module starts or after `/ul reload`. A setting you edited is kept. To keep a built-in text but
+  stop it following `language`, change at least one character (UltiKits/UltiCleaner#17). The text written is this module's built-in text: edit these settings in `config/cleaner.yml`; an edit of the extracted
+  language file does not change them (earlier versions never read them from the language file either).
+- `config/cleaner.yml` 中的消息设置——七条广播消息（`messages.warn`、`messages.entity-warn`、`messages.item-cleaned`、
+  `messages.entity-cleaned`、`messages.smart-triggered`、`messages.clean-progress`、`messages.clean-cancelled`）——
+  在模块启动时按服务器语言写入，文件内容即模块广播的内容；此前它们是写死的中文，`language: en` 对任何清理广播都不起作用。
+  仍为内置文本（任一语言的内置文本，或旧版本的出厂默认值）的设置会跟随 `language`：模块启动或执行 `/ul reload` 后改写为
+  当前语言的文本。你改过的设置保持不变。若想保留内置文本又不让它跟随语言，请至少改动一个字符（UltiKits/UltiCleaner#17）。写入的是本模块的内置文本：请在 `config/cleaner.yml` 中修改这些设置；修改已解压的语言文件不会改变它们（旧版本同样从不从语言文件读取它们）。
+
 ### Fixed
+
+- `language: en` now applies to everything `/clean` prints (the started, in-progress, `check`,
+  `status` and help lines) and to the command description, which were fixed Chinese text in every
+  language although the language files already held English text for most of them
+  (UltiKits/UltiCleaner#17). `language: zh` now also applies to the console lines that were fixed
+  English text: the detected-server and TPS-monitor start-up lines, an unknown entity type in
+  `entity.types`, the TPS band shown by `/clean check` and `/clean status` (`Normal`, `Low`,
+  `Critical`), and the warning about a key this version no longer reads. Their English wording is
+  unchanged.
+- `language: en` 现在对 `/clean` 打印的全部内容（开始清理、清理进行中、`check`、`status` 与帮助）以及命令描述生效；
+  这些内容原先在任何语言下都是写死的中文，而语言文件中其实已有其中大部分的英文文本（UltiKits/UltiCleaner#17）。
+  `language: zh` 现在也对原先写死为英文的控制台日志生效：检测到的服务端与 TPS 监控启动行、`entity.types` 中的未知实体类型、
+  `/clean check` 与 `/clean status` 显示的 TPS 档位（`Normal`、`Low`、`Critical`），以及本版本不再读取的配置键的警告。
 
 - `/ul reload UltiCleaner` (and a bare `/ul reload`) now re-reads `config/cleaner.yml` and
   refreshes the module's language files before the module rebuilds the cleaner service's caches and
@@ -48,6 +79,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   模块并未在使用的数字（UltiKits/UltiCleaner#21）。
 
 ### Removed
+
+- Five language-file entries that no code ever displayed were removed from `lang/en.yml` and
+  `lang/zh.yml`: `smart_clean_items`, `smart_clean_mobs`, `clean_complete`, `tps_low_warning` and
+  `tps_critical_warning`. No message changes; a copy of them in an already-extracted language file
+  is simply not read.
+- 从 `lang/en.yml` 与 `lang/zh.yml` 中删除了五个从未被任何代码显示的条目：`smart_clean_items`、`smart_clean_mobs`、
+  `clean_complete`、`tps_low_warning`、`tps_critical_warning`。任何消息都不受影响；已解压的语言文件中的副本只是不再被读取。
 
 - Removed the module's own "UltiCleaner has been disabled!" console line and its
   `cleaner_disabled` language key. The unload override that printed it did no other work, so it
@@ -74,11 +112,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Removed the configuration key `messages.prefix` from `config/cleaner.yml`. No code ever read it, so
   no message was ever prefixed from it and nothing you see changes. The prefix in a cleanup broadcast
   is part of that broadcast's own text — the seven other `messages.*` keys in the same file, each
-  still read from the configuration and each still carrying its own `[清理]` tag — so to change a
-  prefix, edit the message it belongs to. Making these broadcasts follow the server's `language`
-  setting is separate, still outstanding work (UltiKits/UltiCleaner#17). The removed key stays in
-  your existing file and is now ignored; the module logs one warning about it at startup
-  (UltiKits/UltiCleaner#18).
+  still read from the configuration and each carrying its own tag (`[Cleaner]` in the English
+  built-in text, `[清理]` in the Chinese) — so to change a prefix, edit the message it belongs to.
+  Those broadcasts now follow the server's `language` setting, as described under Changed above
+  (UltiKits/UltiCleaner#17). The removed key stays in your existing file and is now ignored; the
+  module logs one warning about it at startup (UltiKits/UltiCleaner#18).
 - 移除了本模块自身的"UltiCleaner 已禁用！"控制台日志行及其 `cleaner_disabled` 语言键；
   打印该行的卸载覆写方法没有其他工作，因此直接删除，而非迁移到新的卸载钩子。
 - **完整移除区块卸载功能。** 服务端引擎本身已经会卸载闲置区块，因此这个功能唯一够得着的，恰好是服务端
@@ -96,7 +134,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `/clean check` 的「已加载区块」一行保留：它是一项普通的服务器统计数字，不是该功能的读数。
 - 移除了 `config/cleaner.yml` 中的配置项 `messages.prefix`。此前没有任何代码读取它，因此从来没有任何消息
   用过它作前缀，删除它不会改变你看到的任何内容。清理广播里的前缀是那条广播自身文本的一部分——即同一文件中
-  另外七个 `messages.*` 键，它们仍然从配置读取，也仍然各自带着自己的 `[清理]` 标记——所以要改前缀，就去改
-  它所属的那条消息。让这些广播跟随服务器的 `language` 设置是另一项尚未完成的工作
+  另外七个 `messages.*` 键，它们仍然从配置读取，也各自带着自己的标记（英文内置文本为 `[Cleaner]`，中文为 `[清理]`）
+  ——所以要改前缀，就去改它所属的那条消息。这些广播现在会跟随服务器的 `language` 设置，见上文「Changed」一节
   （UltiKits/UltiCleaner#17）。被删除的键仍留在你现有的配置文件里，但已不再生效；模块启动时会为它记一条警告
   （UltiKits/UltiCleaner#18）。

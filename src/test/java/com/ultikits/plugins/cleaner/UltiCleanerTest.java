@@ -1,5 +1,6 @@
 package com.ultikits.plugins.cleaner;
 
+import com.ultikits.plugins.cleaner.i18n.CatalogueText;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -36,7 +37,7 @@ class UltiCleanerTest {
         TpsAwareScheduler mockTpsScheduler = mock(TpsAwareScheduler.class);
 
         when(plugin.getLogger()).thenReturn(logger);
-        when(plugin.i18n(anyString())).thenReturn("cleaner_enabled");
+        when(plugin.i18n(anyString())).thenAnswer(CatalogueText.answer("en"));
         when(plugin.getContext()).thenReturn(mockContext);
         when(mockContext.getBean(CleanerService.class)).thenReturn(mockCleanerService);
         when(mockContext.getBean(TpsAwareScheduler.class)).thenReturn(mockTpsScheduler);
@@ -77,7 +78,7 @@ class UltiCleanerTest {
         CleanerService mockCleanerService = mock(CleanerService.class);
 
         when(plugin.getLogger()).thenReturn(logger);
-        when(plugin.i18n(anyString())).thenAnswer(inv -> inv.getArgument(0));
+        when(plugin.i18n(anyString())).thenAnswer(CatalogueText.answer("en"));
         when(plugin.getContext()).thenReturn(mockContext);
         when(mockContext.getBean(CleanerService.class)).thenReturn(mockCleanerService);
         doCallRealMethod().when(plugin).onReload();
@@ -85,7 +86,7 @@ class UltiCleanerTest {
         plugin.onReload();
 
         verify(mockCleanerService, times(1)).reload();
-        verify(logger).info("cleaner_reloaded");
+        verify(logger).info(CatalogueText.text("en", "cleaner_reloaded"));
     }
 
     @Test
@@ -96,13 +97,13 @@ class UltiCleanerTest {
         SimpleContainer mockContext = mock(SimpleContainer.class);
 
         when(plugin.getLogger()).thenReturn(logger);
-        when(plugin.i18n(anyString())).thenAnswer(inv -> inv.getArgument(0));
+        when(plugin.i18n(anyString())).thenAnswer(CatalogueText.answer("en"));
         when(plugin.getContext()).thenReturn(mockContext);
         when(mockContext.getBean(CleanerService.class)).thenReturn(null);
         doCallRealMethod().when(plugin).onReload();
 
         assertThatCode(() -> plugin.onReload()).doesNotThrowAnyException();
-        verify(logger).info("cleaner_reloaded");
+        verify(logger).info(CatalogueText.text("en", "cleaner_reloaded"));
     }
 
     @Test
@@ -113,7 +114,7 @@ class UltiCleanerTest {
         SimpleContainer mockContext = mock(SimpleContainer.class);
 
         when(plugin.getLogger()).thenReturn(logger);
-        when(plugin.i18n(anyString())).thenReturn("cleaner_enabled");
+        when(plugin.i18n(anyString())).thenAnswer(CatalogueText.answer("en"));
         when(plugin.getContext()).thenReturn(mockContext);
         when(mockContext.getBean(CleanerService.class)).thenReturn(null);
         when(mockContext.getBean(TpsAwareScheduler.class)).thenReturn(null);
@@ -122,7 +123,7 @@ class UltiCleanerTest {
         boolean result = plugin.registerSelf();
 
         assertThat(result).isTrue();
-        verify(logger).info("cleaner_enabled");
+        verify(logger).info(CatalogueText.text("en", "cleaner_enabled"));
     }
 
     @Test
@@ -134,7 +135,7 @@ class UltiCleanerTest {
         CleanerService mockCleanerService = mock(CleanerService.class);
 
         when(plugin.getLogger()).thenReturn(logger);
-        when(plugin.i18n(anyString())).thenReturn("cleaner_enabled");
+        when(plugin.i18n(anyString())).thenAnswer(CatalogueText.answer("en"));
         when(plugin.getContext()).thenReturn(mockContext);
         when(mockContext.getBean(CleanerService.class)).thenReturn(mockCleanerService);
         when(mockContext.getBean(TpsAwareScheduler.class)).thenReturn(null);
@@ -180,7 +181,7 @@ class UltiCleanerTest {
             logger = mock(PluginLogger.class);
             SimpleContainer context = mock(SimpleContainer.class);
             when(plugin.getLogger()).thenReturn(logger);
-            when(plugin.i18n(anyString())).thenAnswer(inv -> inv.getArgument(0));
+            when(plugin.i18n(anyString())).thenAnswer(CatalogueText.answer("en"));
             when(plugin.getContext()).thenReturn(context);
             when(context.getBean(CleanerService.class)).thenReturn(null);
             when(context.getBean(TpsAwareScheduler.class)).thenReturn(null);

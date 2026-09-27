@@ -2,6 +2,7 @@ package com.ultikits.plugins.cleaner.commands;
 
 import com.ultikits.plugins.cleaner.UltiCleanerTestHelper;
 import com.ultikits.plugins.cleaner.config.CleanerConfig;
+import com.ultikits.plugins.cleaner.i18n.CleanerSeams;
 import com.ultikits.plugins.cleaner.service.CleanerService;
 import com.ultikits.plugins.cleaner.service.TpsAwareScheduler;
 
@@ -34,7 +35,7 @@ class CleanCommandTest {
         config = UltiCleanerTestHelper.createDefaultConfig();
         tpsScheduler = mock(TpsAwareScheduler.class);
 
-        command = new CleanCommand(cleanerService, config);
+        command = CleanerSeams.command(cleanerService, config, UltiCleanerTestHelper.getMockPlugin());
 
         player = UltiCleanerTestHelper.createMockPlayer("TestPlayer", UUID.randomUUID());
         sender = mock(CommandSender.class);

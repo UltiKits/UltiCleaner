@@ -12,20 +12,13 @@ entity_cleaned: "&a[清理] &f已清理 &e{COUNT} &f个实体！"
 
 # 智能清理
 smart_clean_triggered: "&e[清理] &f检测到实体数量过多，正在进行智能清理..."
-smart_clean_items: "&e[清理] &f物品数量超过阈值 ({COUNT}/{THRESHOLD})，触发智能清理"
-smart_clean_mobs: "&e[清理] &f生物数量超过阈值 ({COUNT}/{THRESHOLD})，触发智能清理"
 
 # 进度显示
 clean_progress: "&7[清理] &f清理进度: &e{CURRENT}&f/&e{TOTAL}"
 clean_in_progress: "&e清理正在进行中，请稍候..."
-clean_complete: "&a[清理] &f清理完成！耗时 {TIME}"
 
 # 事件相关
 clean_cancelled: "&c[清理] &f清理操作被其他插件取消！"
-
-# TPS 相关
-tps_low_warning: "&e[清理] &f服务器TPS较低 ({TPS})，已降低清理阈值"
-tps_critical_warning: "&c[清理] &f服务器TPS严重过低 ({TPS})，已大幅降低清理阈值"
 
 # 命令帮助
 cmd_help_title: "&6=== UltiCleaner 帮助 ==="
@@ -49,3 +42,28 @@ stats_mobs: "&e可清理生物: &f{COUNT}"
 stats_total: "&e实体总数: &f{COUNT}"
 stats_chunks_loaded: "&e已加载区块: &f{COUNT}"
 stats_tps: "&e服务器TPS: &f{TPS}"
+
+# 命令描述（/help 中显示）
+command_description: "清理地面物品和实体"
+
+# 手动清理
+clean_started_items: "&a已开始清理 {COUNT} 个地面物品（分批处理中）..."
+clean_started_entities: "&a已开始清理 {COUNT} 个实体（分批处理中）..."
+clean_started_all: "&a已开始清理 {ITEMS} 个物品和 {ENTITIES} 个实体（分批处理中）..."
+
+# /clean status 与 /clean check 显示的 TPS
+status_tps: "&eTPS: {TPS}"
+status_tps_critical: "&c⚠ TPS严重过低，智能清理阈值已降低{PERCENT}%"
+status_tps_low: "&e⚠ TPS较低，智能清理阈值已降低{PERCENT}%"
+tps_status_critical: "&c{TPS} (严重)"
+tps_status_low: "&e{TPS} (偏低)"
+tps_status_normal: "&a{TPS} (正常)"
+
+# 控制台
+log_server_detected: "检测到服务端: {SERVER}"
+log_tps_monitor_initialized: "TPS 监控已初始化。服务端: {SERVER}"
+log_config_default_save_failed: "已按服务器语言写入 {FILE} 中的消息，但保存失败: {ERROR}"
+log_unknown_entity_type: "未知的实体类型: {TYPE}"
+removed_key_warning: "[UltiCleaner] {FILE} 仍包含 '{KEY}'，当前版本已不再读取该键。{REASON} 从文件中删除该键即可消除此警告。"
+removed_key_reason_prefix: "从未有任何代码读取这个键，所以从没有消息因它加上前缀，删除它不会改变你看到的任何内容。清理广播中的前缀是该广播自身文本的一部分：要修改某条消息，请编辑对应的 'messages.*' 键（UltiKits/UltiCleaner#18）。"
+removed_key_reason_chunk: "区块卸载功能已移除：服务端引擎本身就会卸载闲置区块，所以本模块的实现只可能触及服务端有意保留的那些区块。没有替代设置（UltiKits/UltiCleaner#27）。"

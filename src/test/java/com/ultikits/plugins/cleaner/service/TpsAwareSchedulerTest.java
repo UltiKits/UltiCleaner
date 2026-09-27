@@ -2,12 +2,14 @@ package com.ultikits.plugins.cleaner.service;
 
 import com.ultikits.plugins.cleaner.UltiCleanerTestHelper;
 import com.ultikits.plugins.cleaner.config.CleanerConfig;
+import com.ultikits.plugins.cleaner.i18n.CatalogueText;
 import com.ultikits.plugins.cleaner.utils.ServerTypeUtil;
 
 import org.junit.jupiter.api.*;
 import org.mockito.MockedStatic;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @DisplayName("TpsAwareScheduler Tests")
@@ -26,6 +28,8 @@ class TpsAwareSchedulerTest {
         // Inject dependencies via reflection
         UltiCleanerTestHelper.setField(scheduler, "config", config);
         UltiCleanerTestHelper.setField(scheduler, "plugin", UltiCleanerTestHelper.getMockPlugin());
+        // The status assertions below quote the English text an operator reads under language: en.
+        when(UltiCleanerTestHelper.getMockPlugin().i18n(anyString())).thenAnswer(CatalogueText.answer("en"));
     }
 
     @AfterEach

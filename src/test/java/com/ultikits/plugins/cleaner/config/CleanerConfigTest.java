@@ -1,5 +1,6 @@
 package com.ultikits.plugins.cleaner.config;
 
+import com.ultikits.plugins.cleaner.i18n.CatalogueText;
 import org.junit.jupiter.api.*;
 
 import static org.assertj.core.api.Assertions.*;
@@ -265,53 +266,66 @@ class CleanerConfigTest {
         }
 
         @Test
-        @DisplayName("Should have warn message with {TIME} placeholder")
+        @DisplayName("WarnMessage is the shipped default until the module writes it in the server's language; the language file gives its text with {TIME}")
         void warnMessage() {
             CleanerConfig config = createRealConfig();
-            assertThat(config.getWarnMessage()).contains("{TIME}");
+            assertThat(config.getWarnMessage()).isEqualTo("&c[清理] &f地面物品将在 &e{TIME} &f秒后清理！");
+            assertThat(CatalogueText.text("en", "item_warn")).contains("{TIME}");
+            assertThat(CatalogueText.text("zh", "item_warn")).contains("{TIME}");
         }
 
         @Test
-        @DisplayName("Should have entity warn message with {TIME} placeholder")
+        @DisplayName("EntityWarnMessage is the shipped default until the module writes it in the server's language; the language file gives its text with {TIME}")
         void entityWarnMessage() {
             CleanerConfig config = createRealConfig();
-            assertThat(config.getEntityWarnMessage()).contains("{TIME}");
+            assertThat(config.getEntityWarnMessage()).isEqualTo("&c[清理] &f实体将在 &e{TIME} &f秒后清理！");
+            assertThat(CatalogueText.text("en", "entity_warn")).contains("{TIME}");
+            assertThat(CatalogueText.text("zh", "entity_warn")).contains("{TIME}");
         }
 
         @Test
-        @DisplayName("Should have item cleaned message with {COUNT} placeholder")
+        @DisplayName("ItemCleanedMessage is the shipped default until the module writes it in the server's language; the language file gives its text with {COUNT}")
         void itemCleanedMessage() {
             CleanerConfig config = createRealConfig();
-            assertThat(config.getItemCleanedMessage()).contains("{COUNT}");
+            assertThat(config.getItemCleanedMessage()).isEqualTo("&a[清理] &f已清理 &e{COUNT} &f个地面物品！");
+            assertThat(CatalogueText.text("en", "item_cleaned")).contains("{COUNT}");
+            assertThat(CatalogueText.text("zh", "item_cleaned")).contains("{COUNT}");
         }
 
         @Test
-        @DisplayName("Should have entity cleaned message with {COUNT} placeholder")
+        @DisplayName("EntityCleanedMessage is the shipped default until the module writes it in the server's language; the language file gives its text with {COUNT}")
         void entityCleanedMessage() {
             CleanerConfig config = createRealConfig();
-            assertThat(config.getEntityCleanedMessage()).contains("{COUNT}");
+            assertThat(config.getEntityCleanedMessage()).isEqualTo("&a[清理] &f已清理 &e{COUNT} &f个实体！");
+            assertThat(CatalogueText.text("en", "entity_cleaned")).contains("{COUNT}");
+            assertThat(CatalogueText.text("zh", "entity_cleaned")).contains("{COUNT}");
         }
 
         @Test
-        @DisplayName("Should have smart clean triggered message")
+        @DisplayName("SmartCleanTriggeredMessage is the shipped default until the module writes it in the server's language; the language file gives its text")
         void smartCleanTriggeredMessage() {
             CleanerConfig config = createRealConfig();
-            assertThat(config.getSmartCleanTriggeredMessage()).isNotEmpty();
+            assertThat(config.getSmartCleanTriggeredMessage()).isEqualTo("&e[清理] &f检测到实体数量过多，正在进行智能清理...");
+            assertThat(CatalogueText.text("en", "smart_clean_triggered")).isNotEmpty();
+            assertThat(CatalogueText.text("zh", "smart_clean_triggered")).isNotEmpty();
         }
 
         @Test
-        @DisplayName("Should have clean progress message with placeholders")
+        @DisplayName("CleanProgressMessage is the shipped default until the module writes it in the server's language; the language file gives its text with {CURRENT} and {TOTAL}")
         void cleanProgressMessage() {
             CleanerConfig config = createRealConfig();
-            assertThat(config.getCleanProgressMessage()).contains("{CURRENT}");
-            assertThat(config.getCleanProgressMessage()).contains("{TOTAL}");
+            assertThat(config.getCleanProgressMessage()).isEqualTo("&7[清理] &f清理进度: &e{CURRENT}&f/&e{TOTAL}");
+            assertThat(CatalogueText.text("en", "clean_progress")).contains("{CURRENT}", "{TOTAL}");
+            assertThat(CatalogueText.text("zh", "clean_progress")).contains("{CURRENT}", "{TOTAL}");
         }
 
         @Test
-        @DisplayName("Should have clean cancelled message")
+        @DisplayName("CleanCancelledMessage is the shipped default until the module writes it in the server's language; the language file gives its text")
         void cleanCancelledMessage() {
             CleanerConfig config = createRealConfig();
-            assertThat(config.getCleanCancelledMessage()).isNotEmpty();
+            assertThat(config.getCleanCancelledMessage()).isEqualTo("&c[清理] &f清理操作被其他插件取消！");
+            assertThat(CatalogueText.text("en", "clean_cancelled")).isNotEmpty();
+            assertThat(CatalogueText.text("zh", "clean_cancelled")).isNotEmpty();
         }
     }
 

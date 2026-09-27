@@ -143,14 +143,14 @@
                             <goal>check</goal>
                         </goals>
                         <configuration>
-                            <!-- D-07: the GUI layer is verified by Phase 10's real-machine UAT
-                                 instead of by this gate. D-09: every class this pattern removes
-                                 is enumerated in the phase-09 GUI exclusion register and must be
-                                 named by a Phase 10 assertion.
+                            <!-- The GUI layer is verified on a real server through
+                                 UAT-CHECKLIST.md instead of by this gate. Every class this
+                                 pattern removes must be named in the Covers cell of at least one
+                                 UAT-CHECKLIST.md row.
                                  UltiCleaner has no gui package, so this exclude is inert here,
                                  written anyway so all sixteen module poms stay comparable and a
                                  later gui package is covered without a second edit.
-                                 F-1: this exclude must live in CheckMojo's own per-execution
+                                 This exclude must live in CheckMojo's own per-execution
                                  excludes (here), not inside rule/excludes, which is a structural
                                  no-op for a BUNDLE-element rule. -->
                             <excludes>

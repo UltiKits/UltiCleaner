@@ -12,20 +12,13 @@ entity_cleaned: "&a[Cleaner] &fCleaned &e{COUNT} &fentities!"
 
 # Smart cleanup
 smart_clean_triggered: "&e[Cleaner] &fDetected too many entities, initiating smart cleanup..."
-smart_clean_items: "&e[Cleaner] &fItem count exceeded threshold ({COUNT}/{THRESHOLD}), triggering smart cleanup"
-smart_clean_mobs: "&e[Cleaner] &fMob count exceeded threshold ({COUNT}/{THRESHOLD}), triggering smart cleanup"
 
 # Progress display
 clean_progress: "&7[Cleaner] &fCleaning progress: &e{CURRENT}&f/&e{TOTAL}"
 clean_in_progress: "&eCleaning in progress, please wait..."
-clean_complete: "&a[Cleaner] &fCleanup complete! Duration: {TIME}"
 
 # Event related
 clean_cancelled: "&c[Cleaner] &fCleanup operation was cancelled by another plugin!"
-
-# TPS related
-tps_low_warning: "&e[Cleaner] &fServer TPS is low ({TPS}), cleanup thresholds reduced"
-tps_critical_warning: "&c[Cleaner] &fServer TPS is critically low ({TPS}), cleanup thresholds significantly reduced"
 
 # Command help
 cmd_help_title: "&6=== UltiCleaner Help ==="
@@ -49,3 +42,28 @@ stats_mobs: "&eCleanable mobs: &f{COUNT}"
 stats_total: "&eTotal entities: &f{COUNT}"
 stats_chunks_loaded: "&eLoaded chunks: &f{COUNT}"
 stats_tps: "&eServer TPS: &f{TPS}"
+
+# Command description (shown by /help)
+command_description: "Clean up ground items and entities"
+
+# Manual cleanup
+clean_started_items: "&aStarted cleaning {COUNT} ground items (processing in batches)..."
+clean_started_entities: "&aStarted cleaning {COUNT} entities (processing in batches)..."
+clean_started_all: "&aStarted cleaning {ITEMS} items and {ENTITIES} entities (processing in batches)..."
+
+# TPS shown by /clean status and /clean check
+status_tps: "&eTPS: {TPS}"
+status_tps_critical: "&c⚠ TPS is critically low; smart cleanup thresholds lowered by {PERCENT}%"
+status_tps_low: "&e⚠ TPS is low; smart cleanup thresholds lowered by {PERCENT}%"
+tps_status_critical: "&c{TPS} (Critical)"
+tps_status_low: "&e{TPS} (Low)"
+tps_status_normal: "&a{TPS} (Normal)"
+
+# Console
+log_server_detected: "Detected server: {SERVER}"
+log_tps_monitor_initialized: "TPS monitor initialized. Server: {SERVER}"
+log_config_default_save_failed: "Could not save {FILE} after writing its messages in the server's language: {ERROR}"
+log_unknown_entity_type: "Unknown entity type: {TYPE}"
+removed_key_warning: "[UltiCleaner] {FILE} still contains '{KEY}', which this version no longer reads. {REASON} Delete the key from the file to silence this warning."
+removed_key_reason_prefix: "Nothing ever read this key, so no message was ever prefixed from it and deleting it changes nothing you see. The prefix in a cleanup broadcast is part of that broadcast's own text: edit the 'messages.*' key for the message you want to change (UltiKits/UltiCleaner#18)."
+removed_key_reason_chunk: "Chunk unloading was removed: the server engine already unloads idle chunks by itself, so this module's version could only ever reach the chunks the server deliberately keeps resident. There is no replacement setting (UltiKits/UltiCleaner#27)."

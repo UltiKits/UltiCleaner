@@ -98,7 +98,7 @@ public class CleanerService {
                 try {
                     entityTypesCache.add(EntityType.valueOf(type.toUpperCase()));
                 } catch (IllegalArgumentException e) {
-                    plugin.getLogger().warn("Unknown entity type: " + type);
+                    plugin.getLogger().warn(plugin.i18n("log_unknown_entity_type").replace("{TYPE}", type));
                 }
             }
         }
@@ -162,7 +162,7 @@ public class CleanerService {
         
         if (shouldCleanItems || shouldCleanMobs) {
             lastSmartCleanTime = now;
-            broadcastMessage(config.getSmartCleanTriggeredMessage());
+            broadcastMessage(smartTriggeredText());
             
             if (shouldCleanItems) {
                 cleanItemsWithBatch(PreItemCleanEvent.CleanTrigger.SMART);
@@ -234,7 +234,7 @@ public class CleanerService {
         Bukkit.getPluginManager().callEvent(preEvent);
         
         if (preEvent.isCancelled()) {
-            broadcastMessage(config.getCleanCancelledMessage());
+            broadcastMessage(cleanCancelledText());
             return;
         }
         
@@ -281,7 +281,7 @@ public class CleanerService {
         Bukkit.getPluginManager().callEvent(preEvent);
         
         if (preEvent.isCancelled()) {
-            broadcastMessage(config.getCleanCancelledMessage());
+            broadcastMessage(cleanCancelledText());
             return;
         }
         
@@ -433,7 +433,7 @@ public class CleanerService {
             
             // Show progress if enabled
             if (config.isShowCleanProgress() && currentIndex.get() < uuids.size()) {
-                String progressMsg = config.getCleanProgressMessage()
+                String progressMsg = cleanProgressText()
                     .replace("{CURRENT}", String.valueOf(currentIndex.get()))
                     .replace("{TOTAL}", String.valueOf(totalCount));
                 
@@ -473,6 +473,38 @@ public class CleanerService {
         }
     }
     
+    // ---- Broadcast text: exactly the configured message ----
+    // config/cleaner.yml holds each message in the server's language (UltiCleaner#materializeText at
+    // enable and reload, maintainer decision 2026-09-25), so the text sent is the file's text.
+
+    private String warnText() {
+        return config.getWarnMessage();
+    }
+
+    private String entityWarnText() {
+        return config.getEntityWarnMessage();
+    }
+
+    private String itemCleanedText() {
+        return config.getItemCleanedMessage();
+    }
+
+    private String entityCleanedText() {
+        return config.getEntityCleanedMessage();
+    }
+
+    private String smartTriggeredText() {
+        return config.getSmartCleanTriggeredMessage();
+    }
+
+    private String cleanProgressText() {
+        return config.getCleanProgressMessage();
+    }
+
+    private String cleanCancelledText() {
+        return config.getCleanCancelledMessage();
+    }
+
     /**
      * Broadcast a message.
      */
@@ -487,7 +519,7 @@ public class CleanerService {
      * Broadcast warning message.
      */
     private void broadcastWarn(int seconds) {
-        String message = config.getWarnMessage().replace("{TIME}", String.valueOf(seconds));
+        String message = warnText().replace("{TIME}", String.valueOf(seconds));
         broadcastMessage(message);
     }
     
@@ -495,7 +527,7 @@ public class CleanerService {
      * Broadcast entity warning message.
      */
     private void broadcastEntityWarn(int seconds) {
-        String message = config.getEntityWarnMessage().replace("{TIME}", String.valueOf(seconds));
+        String message = entityWarnText().replace("{TIME}", String.valueOf(seconds));
         broadcastMessage(message);
     }
     
@@ -503,7 +535,7 @@ public class CleanerService {
      * Broadcast item cleaned message.
      */
     private void broadcastItemCleaned(int count) {
-        String message = config.getItemCleanedMessage().replace("{COUNT}", String.valueOf(count));
+        String message = itemCleanedText().replace("{COUNT}", String.valueOf(count));
         broadcastMessage(message);
     }
     
@@ -512,7 +544,7 @@ public class CleanerService {
      */
     private void broadcastEntityCleaned(int count) {
         if (count > 0) {
-            String message = config.getEntityCleanedMessage().replace("{COUNT}", String.valueOf(count));
+            String message = entityCleanedText().replace("{COUNT}", String.valueOf(count));
             broadcastMessage(message);
         }
     }
