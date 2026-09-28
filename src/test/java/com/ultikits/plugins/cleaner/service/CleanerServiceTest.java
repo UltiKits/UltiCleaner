@@ -2335,6 +2335,32 @@ class CleanerServiceTest {
         }
 
         @Test
+        @DisplayName("ALL is dispatched after both component events, whichever order the async tasks run in")
+        void allIsDispatchedLastWhateverTheAsyncOrder() {
+            List<Runnable> asyncTasks = new ArrayList<>();
+            when(UltiCleanerTestHelper.getMockScheduler().runTaskAsynchronously(any(), any(Runnable.class)))
+                    .thenAnswer(invocation -> {
+                        asyncTasks.add(invocation.getArgument(1));
+                        return mock(BukkitTask.class);
+                    });
+            ArgumentCaptor<Consumer<BukkitTask>> ticks = captureBatchTickConsumer();
+
+            cleanAll();
+            ticks.getAllValues().get(0).accept(mock(BukkitTask.class));
+            ticks.getAllValues().get(1).accept(mock(BukkitTask.class));
+            // Run the queued async work newest first, as concurrent async tasks may; a task queued
+            // while running is run too
+            while (!asyncTasks.isEmpty()) {
+                asyncTasks.remove(asyncTasks.size() - 1).run();
+            }
+
+            List<com.ultikits.plugins.cleaner.events.CleanCompleteEvent> events = completeEvents();
+            assertThat(events).extracting(e -> e.getCleanType().name())
+                    .containsExactlyInAnyOrder("ITEMS", "ENTITIES", "ALL");
+            assertThat(events.get(events.size() - 1).getCleanType().name()).isEqualTo("ALL");
+        }
+
+        @Test
         @DisplayName("a cancelled item half still ends in one ALL event carrying the entity count")
         void cancelledItemHalfStillFiresAll() {
             PluginManager pluginManager = Bukkit.getPluginManager();
