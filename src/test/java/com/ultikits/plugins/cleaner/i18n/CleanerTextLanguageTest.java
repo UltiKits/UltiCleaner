@@ -113,9 +113,12 @@ class CleanerTextLanguageTest {
 
         @Test
         @DisplayName("items, entities and all report what they started in English")
-        void startedLines() {
+        void startedLines() throws Exception {
             when(service.forceCleanItems()).thenReturn(12);
             when(service.forceCleanEntities()).thenReturn(34);
+            // /clean all runs one combined cleanup (UltiKits/UltiCleaner#16), reached reflectively so
+            // this class compiles against the service before that method existed
+            when(CleanerService.class.getMethod("forceCleanAll").invoke(service)).thenReturn(new int[] {12, 34});
 
             command.cleanItems(sender);
             command.cleanEntities(sender);

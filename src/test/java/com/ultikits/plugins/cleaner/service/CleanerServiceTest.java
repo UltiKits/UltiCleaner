@@ -9,6 +9,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.*;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -2250,6 +2251,132 @@ class CleanerServiceTest {
             captor.getAllValues().get(1).accept(mock(BukkitTask.class));
             assertThat(flag("isEntityCleaningInProgress")).isFalse();
             assertThat(service.isCleaningInProgress()).isFalse();
+        }
+    }
+
+    // ==================== UltiKits/UltiCleaner#16 ====================
+
+    @Nested
+    @DisplayName("/clean all fires one CleanType.ALL event after both halves finish (UltiKits/UltiCleaner#16)")
+    class CleanAllCompleteEvent {
+
+        private Item item;
+        private LivingEntity zombie;
+        private CommandSender sender;
+
+        @BeforeEach
+        void worldWithOneItemAndOneZombie() {
+            World world = UltiCleanerTestHelper.createMockWorld("world");
+            item = createMockItem(world, "STONE", false, 1000);
+            zombie = createMockLivingEntity(world, EntityType.ZOMBIE, null, false);
+            when(world.getEntities()).thenReturn(Arrays.asList(item, zombie));
+            UltiCleanerTestHelper.addMockWorld(world);
+            when(UltiCleanerTestHelper.getMockServer().getEntity(item.getUniqueId())).thenReturn(item);
+            when(UltiCleanerTestHelper.getMockServer().getEntity(zombie.getUniqueId())).thenReturn(zombie);
+            when(item.isValid()).thenReturn(true);
+            when(zombie.isValid()).thenReturn(true);
+            when(config.getItemIgnoreRecentSeconds()).thenReturn(0);
+            when(config.isItemIgnoreNamed()).thenReturn(false);
+            when(config.isEntityWhitelistNamed()).thenReturn(false);
+            when(config.isEntityWhitelistLeashed()).thenReturn(false);
+            when(config.isEntityWhitelistTamed()).thenReturn(false);
+            initServiceWithConfig(Collections.emptyList(), Arrays.asList("ZOMBIE"), Collections.emptyList());
+            makeRunTaskAsynchronouslySynchronous();
+            sender = mock(CommandSender.class);
+        }
+
+        private List<com.ultikits.plugins.cleaner.events.CleanCompleteEvent> completeEvents() {
+            ArgumentCaptor<org.bukkit.event.Event> captor = ArgumentCaptor.forClass(org.bukkit.event.Event.class);
+            verify(Bukkit.getPluginManager(), atLeast(0)).callEvent(captor.capture());
+            List<com.ultikits.plugins.cleaner.events.CleanCompleteEvent> out = new ArrayList<>();
+            for (org.bukkit.event.Event event : captor.getAllValues()) {
+                if (event instanceof com.ultikits.plugins.cleaner.events.CleanCompleteEvent) {
+                    out.add((com.ultikits.plugins.cleaner.events.CleanCompleteEvent) event);
+                }
+            }
+            return out;
+        }
+
+        private List<com.ultikits.plugins.cleaner.events.CleanCompleteEvent> allEvents() {
+            List<com.ultikits.plugins.cleaner.events.CleanCompleteEvent> out = new ArrayList<>();
+            for (com.ultikits.plugins.cleaner.events.CleanCompleteEvent event : completeEvents()) {
+                if ("ALL".equals(event.getCleanType().name())) {
+                    out.add(event);
+                }
+            }
+            return out;
+        }
+
+        private void cleanAll() {
+            com.ultikits.plugins.cleaner.i18n.CleanerSeams
+                    .command(service, config, UltiCleanerTestHelper.getMockPlugin())
+                    .cleanAll(sender);
+        }
+
+        @Test
+        @DisplayName("one ALL event with the total count and trigger MANUAL, only after the second batch finishes")
+        void oneAllEventAfterBothBatches() {
+            ArgumentCaptor<Consumer<BukkitTask>> ticks = captureBatchTickConsumer();
+
+            cleanAll();
+            assertThat(allEvents()).isEmpty();
+
+            ticks.getAllValues().get(0).accept(mock(BukkitTask.class));
+            assertThat(allEvents()).as("ALL fired before the second batch finished").isEmpty();
+
+            ticks.getAllValues().get(1).accept(mock(BukkitTask.class));
+            List<com.ultikits.plugins.cleaner.events.CleanCompleteEvent> all = allEvents();
+            assertThat(all).hasSize(1);
+            assertThat(all.get(0).getCleanedCount()).isEqualTo(2);
+            assertThat(all.get(0).getTrigger())
+                    .isEqualTo(com.ultikits.plugins.cleaner.events.CleanCompleteEvent.CleanTrigger.MANUAL);
+            assertThat(completeEvents()).extracting(e -> e.getCleanType().name())
+                    .containsExactlyInAnyOrder("ITEMS", "ENTITIES", "ALL");
+        }
+
+        @Test
+        @DisplayName("a cancelled item half still ends in one ALL event carrying the entity count")
+        void cancelledItemHalfStillFiresAll() {
+            PluginManager pluginManager = Bukkit.getPluginManager();
+            doAnswer(invocation -> {
+                Object event = invocation.getArgument(0);
+                if (event instanceof PreItemCleanEvent) {
+                    ((PreItemCleanEvent) event).setCancelled(true);
+                }
+                return null;
+            }).when(pluginManager).callEvent(any());
+            ArgumentCaptor<Consumer<BukkitTask>> ticks = captureBatchTickConsumer();
+
+            cleanAll();
+            assertThat(ticks.getAllValues()).hasSize(1);
+            ticks.getValue().accept(mock(BukkitTask.class));
+
+            List<com.ultikits.plugins.cleaner.events.CleanCompleteEvent> all = allEvents();
+            assertThat(all).hasSize(1);
+            assertThat(all.get(0).getCleanedCount()).isEqualTo(1);
+            verify(item, never()).remove();
+            verify(zombie).remove();
+        }
+
+        @Test
+        @DisplayName("scheduled cleanups reaching zero together never fire ALL")
+        void scheduledCleanupsNeverFireAll() throws Exception {
+            ArgumentCaptor<Consumer<BukkitTask>> ticks = captureBatchTickConsumer();
+            UltiCleanerTestHelper.setField(service, "itemCountdown", 1);
+            UltiCleanerTestHelper.setField(service, "entityCountdown", 1);
+            Method itemTick = CleanerService.class.getDeclaredMethod("tickItemClean");
+            Method entityTick = CleanerService.class.getDeclaredMethod("tickEntityClean");
+            itemTick.setAccessible(true);
+            entityTick.setAccessible(true);
+            itemTick.invoke(service);
+            entityTick.invoke(service);
+            for (Consumer<BukkitTask> tick : ticks.getAllValues()) {
+                tick.accept(mock(BukkitTask.class));
+            }
+
+            assertThat(allEvents()).isEmpty();
+            assertThat(completeEvents()).extracting(e -> e.getCleanType().name())
+                    .containsExactlyInAnyOrder("ITEMS", "ENTITIES");
         }
     }
 }
