@@ -2379,4 +2379,107 @@ class CleanerServiceTest {
                     .containsExactlyInAnyOrder("ITEMS", "ENTITIES");
         }
     }
+
+    // ==================== UltiKits/UltiCleaner#22 ====================
+
+    @Nested
+    @DisplayName("Countdown warnings fire for warn-times read from the file (UltiKits/UltiCleaner#22)")
+    class WarnTimesFromFile {
+
+        private Player online;
+
+        @BeforeEach
+        void onePlayerOnline() {
+            online = mock(Player.class);
+            doReturn(Collections.singletonList(online)).when(UltiCleanerTestHelper.getMockServer()).getOnlinePlayers();
+        }
+
+        /** What the framework's config parser binds: every list element as its string form. */
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        private List<Integer> asParsedFromFile(String... values) {
+            return (List) new ArrayList<>(Arrays.asList(values));
+        }
+
+        private List<String> broadcastsWhileCountingDownFrom(String countdownField, String tickMethod, int from)
+                throws Exception {
+            UltiCleanerTestHelper.setField(service, countdownField, from + 1);
+            Method tick = CleanerService.class.getDeclaredMethod(tickMethod);
+            tick.setAccessible(true);
+            for (int second = from; second >= 1; second--) {
+                tick.invoke(service);
+            }
+            ArgumentCaptor<String> sent = ArgumentCaptor.forClass(String.class);
+            verify(online, atLeast(0)).sendMessage(sent.capture());
+            return sent.getAllValues();
+        }
+
+        @Test
+        @DisplayName("item warnings at 10, 5, 3, 2 and 1 seconds, from string elements")
+        void itemWarningsFromStrings() throws Exception {
+            when(config.getItemCleanInterval()).thenReturn(15);
+            when(config.getItemWarnTimes()).thenReturn(asParsedFromFile("60", "30", "10", "5", "3", "2", "1"));
+            initServiceWithEmptyConfig();
+
+            List<String> sent = broadcastsWhileCountingDownFrom("itemCountdown", "tickItemClean", 12);
+
+            assertThat(sent).containsExactly(
+                    "§e[Clean] Items will be cleaned in 10 seconds",
+                    "§e[Clean] Items will be cleaned in 5 seconds",
+                    "§e[Clean] Items will be cleaned in 3 seconds",
+                    "§e[Clean] Items will be cleaned in 2 seconds",
+                    "§e[Clean] Items will be cleaned in 1 seconds");
+        }
+
+        @Test
+        @DisplayName("entity warnings at 10, 5, 3, 2 and 1 seconds, from string elements")
+        void entityWarningsFromStrings() throws Exception {
+            when(config.getEntityCleanInterval()).thenReturn(15);
+            when(config.getEntityWarnTimes()).thenReturn(asParsedFromFile("60", "30", "10", "5", "3", "2", "1"));
+            initServiceWithEmptyConfig();
+
+            List<String> sent = broadcastsWhileCountingDownFrom("entityCountdown", "tickEntityClean", 12);
+
+            assertThat(sent).containsExactly(
+                    "§e[Clean] Entities will be cleaned in 10 seconds",
+                    "§e[Clean] Entities will be cleaned in 5 seconds",
+                    "§e[Clean] Entities will be cleaned in 3 seconds",
+                    "§e[Clean] Entities will be cleaned in 2 seconds",
+                    "§e[Clean] Entities will be cleaned in 1 seconds");
+        }
+
+        @Test
+        @DisplayName("integer elements (a file not yet written) still warn")
+        void integerElementsStillWarn() throws Exception {
+            when(config.getItemCleanInterval()).thenReturn(15);
+            when(config.getItemWarnTimes()).thenReturn(Arrays.asList(5, 1));
+            initServiceWithEmptyConfig();
+
+            List<String> sent = broadcastsWhileCountingDownFrom("itemCountdown", "tickItemClean", 12);
+
+            assertThat(sent).containsExactly(
+                    "§e[Clean] Items will be cleaned in 5 seconds",
+                    "§e[Clean] Items will be cleaned in 1 seconds");
+        }
+
+        @Test
+        @DisplayName("a list with an entry that is not a whole number is refused, named, and the default used")
+        void unusableEntryFallsBackToDefaultWithAWarning() throws Exception {
+            when(config.getItemCleanInterval()).thenReturn(15);
+            when(config.getItemWarnTimes()).thenReturn(asParsedFromFile("10", "2.5", "1"));
+            initServiceWithEmptyConfig();
+
+            ArgumentCaptor<String> warned = ArgumentCaptor.forClass(String.class);
+            verify(UltiCleanerTestHelper.getMockLogger(), atLeastOnce()).warn(warned.capture());
+            assertThat(warned.getAllValues()).anySatisfy(line -> assertThat(line)
+                    .contains("item.warn-times").contains("[10, 2.5, 1]").contains("[60, 30, 10, 5, 3, 2, 1]"));
+
+            List<String> sent = broadcastsWhileCountingDownFrom("itemCountdown", "tickItemClean", 12);
+            assertThat(sent).containsExactly(
+                    "§e[Clean] Items will be cleaned in 10 seconds",
+                    "§e[Clean] Items will be cleaned in 5 seconds",
+                    "§e[Clean] Items will be cleaned in 3 seconds",
+                    "§e[Clean] Items will be cleaned in 2 seconds",
+                    "§e[Clean] Items will be cleaned in 1 seconds");
+        }
+    }
 }
