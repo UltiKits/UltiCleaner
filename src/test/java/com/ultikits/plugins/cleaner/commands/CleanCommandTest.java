@@ -406,4 +406,21 @@ class CleanCommandTest {
             verify(sender, atLeast(4)).sendMessage(anyString());
         }
     }
+
+    // ==================== aliases ====================
+
+    @Nested
+    @DisplayName("aliases (UltiKits/UltiCleaner#30)")
+    class Aliases {
+
+        @Test
+        @DisplayName("/clean answers to clean and cleaner only, never to the vanilla clear command")
+        void noVanillaLabel() {
+            String[] aliases = CleanCommand.class
+                    .getAnnotation(com.ultikits.ultitools.annotations.command.CmdExecutor.class).alias();
+
+            assertThat(aliases).containsExactly("clean", "cleaner");
+            assertThat(aliases).doesNotContain("clear");
+        }
+    }
 }
