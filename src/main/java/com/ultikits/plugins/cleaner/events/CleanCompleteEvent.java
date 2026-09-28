@@ -20,28 +20,19 @@ public class CleanCompleteEvent extends Event {
     private final CleanTrigger trigger;
     
     /**
-     * Type of cleanup performed.
-     * <p>
-     * Two of these four constants are never constructed by any code path in this module, so a
-     * listener's {@code switch} arm for either one can never execute:
-     * <ul>
-     * <li>{@link #CHUNKS} -- was already never constructed, and is now permanently
-     * unconstructible: chunk unloading was removed from this module entirely because the server
-     * engine already unloads idle chunks itself (UltiKits/UltiCleaner#27), so nothing is left that
-     * could ever complete a chunk cleanup.</li>
-     * <li>{@link #ALL} -- {@code /clean all} runs an item cleanup and an entity cleanup in
-     * succession, each firing its own event with its own type, and never constructs one with this
-     * value.</li>
-     * </ul>
-     * Both are tracked by UltiKits/UltiCleaner#16, which owns the decision about removing them;
-     * removing a constant from a published enum is not this change's call to make.
+     * Type of cleanup performed. Every constant is fired by this module (UltiKits/UltiCleaner#16).
+     * The former {@code CHUNKS} constant was removed: chunk unloading was removed from this module
+     * (UltiKits/UltiCleaner#27), so nothing could ever fire it.
      */
     public enum CleanType {
+        /** A ground-item cleanup finished: scheduled, smart, {@code /clean items}, or the item half of {@code /clean all}. */
         ITEMS,
+        /** An entity cleanup finished: scheduled, smart, {@code /clean entities}, or the entity half of {@code /clean all}. */
         ENTITIES,
-        /** Never constructed; permanently unconstructible since chunk unloading was removed. See the enum javadoc and UltiKits/UltiCleaner#16. */
-        CHUNKS,
-        /** Never constructed; {@code /clean all} fires ITEMS and ENTITIES separately. See the enum javadoc and UltiKits/UltiCleaner#16. */
+        /**
+         * {@code /clean all} finished: fired once, after both its halves have finished (each half also
+         * fires its own {@link #ITEMS} or {@link #ENTITIES} event first), with the combined count.
+         */
         ALL
     }
     
@@ -58,7 +49,7 @@ public class CleanCompleteEvent extends Event {
      * Create a new CleanCompleteEvent.
      * 
      * @param cleanType what was cleaned
-     * @param cleanedCount number of items/entities/chunks cleaned
+     * @param cleanedCount number of items and/or entities cleaned
      * @param durationMs how long the cleanup took in milliseconds
      * @param trigger what triggered the cleanup
      */
@@ -80,7 +71,7 @@ public class CleanCompleteEvent extends Event {
     }
     
     /**
-     * Get the number of items/entities/chunks cleaned.
+     * Get the number of items and/or entities cleaned.
      * 
      * @return cleaned count
      */

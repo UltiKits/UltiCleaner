@@ -68,11 +68,10 @@ public class CleanCommand extends BaseCommandExecutor {
             sender.sendMessage(color(plugin.i18n("clean_in_progress")));
             return;
         }
-        int itemCount = cleanerService.forceCleanItems();
-        int entityCount = cleanerService.forceCleanEntities();
+        int[] counts = cleanerService.forceCleanAll();
         sender.sendMessage(color(plugin.i18n("clean_started_all")
-                .replace("{ITEMS}", String.valueOf(itemCount))
-                .replace("{ENTITIES}", String.valueOf(entityCount))));
+                .replace("{ITEMS}", String.valueOf(counts[0]))
+                .replace("{ENTITIES}", String.valueOf(counts[1]))));
     }
     
     @CmdMapping(format = "check")

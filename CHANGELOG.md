@@ -43,6 +43,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- For plugin authors: `/clean all` now fires one `CleanCompleteEvent` of type `ALL` after both of its
+  halves have finished, with the combined count and trigger `MANUAL`. Each half still fires its own
+  `ITEMS` or `ENTITIES` event first, as before. `CleanType.ALL` was declared but never fired
+  (UltiKits/UltiCleaner#16).
+- 面向插件作者：`/clean all` 现在会在两半都完成后触发一次类型为 `ALL` 的 `CleanCompleteEvent`，计数为两者之和、
+  触发方式为 `MANUAL`。两半仍会像以前一样各自先触发自己的 `ITEMS` 或 `ENTITIES` 事件。`CleanType.ALL` 此前只声明、
+  从未被触发（UltiKits/UltiCleaner#16）。
+
 - `/clean all` now removes entities as well as ground items. The item cleanup and the entity cleanup
   shared one "cleaning in progress" flag, so an entity cleanup started in the same tick as an item
   cleanup was skipped without a message while `/clean all` still reported the entities as started.
@@ -91,6 +99,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   模块并未在使用的数字（UltiKits/UltiCleaner#21）。
 
 ### Removed
+
+- For plugin authors: removed `CleanCompleteEvent.CleanType.CHUNKS`. Nothing could fire it once the
+  chunk-unload feature was removed, so a listener's `CHUNKS` branch could never run. A plugin that
+  names the constant must drop that branch before it compiles against this version
+  (UltiKits/UltiCleaner#16).
+- 面向插件作者：删除了 `CleanCompleteEvent.CleanType.CHUNKS`。区块卸载功能删除后已没有任何代码能触发它，监听器里的
+  `CHUNKS` 分支永远不会执行。引用了这个常量的插件需删掉该分支，才能基于本版本编译（UltiKits/UltiCleaner#16）。
 
 - Five language-file entries that no code ever displayed were removed from `lang/en.yml` and
   `lang/zh.yml`: `smart_clean_items`, `smart_clean_mobs`, `clean_complete`, `tps_low_warning` and

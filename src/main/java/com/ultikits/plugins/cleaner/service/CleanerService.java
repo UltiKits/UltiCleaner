@@ -21,6 +21,7 @@ import org.bukkit.plugin.Plugin;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntConsumer;
 
 /**
  * Service for managing entity and item cleanup.
@@ -225,7 +226,20 @@ public class CleanerService {
      * Clean items with batch processing and event support.
      */
     private void cleanItemsWithBatch(PreItemCleanEvent.CleanTrigger trigger) {
+        cleanItemsWithBatch(trigger, count -> { });
+    }
+
+    /**
+     * Clean items with batch processing and event support, reporting the outcome to {@code done}.
+     *
+     * @param trigger what started this cleanup
+     * @param done    receives the number of items removed exactly once, on every path: 0 when an item
+     *                batch is already running, when a listener cancelled the cleanup, or when there was
+     *                nothing to clean; otherwise the count, after the batch's last tick
+     */
+    private void cleanItemsWithBatch(PreItemCleanEvent.CleanTrigger trigger, IntConsumer done) {
         if (itemCleaningInProgress) {
+            done.accept(0);
             return;
         }
         
@@ -238,6 +252,7 @@ public class CleanerService {
         
         if (preEvent.isCancelled()) {
             broadcastMessage(cleanCancelledText());
+            done.accept(0);
             return;
         }
         
@@ -246,6 +261,7 @@ public class CleanerService {
         
         if (finalItems.isEmpty()) {
             broadcastItemCleaned(0);
+            done.accept(0);
             return;
         }
         
@@ -255,17 +271,8 @@ public class CleanerService {
             itemCleaningInProgress = false;
             long duration = System.currentTimeMillis() - startTime;
             broadcastItemCleaned(count);
-            
-            // Fire complete event (async)
-            Bukkit.getScheduler().runTaskAsynchronously(bukkitPlugin, () -> {
-                CleanCompleteEvent completeEvent = new CleanCompleteEvent(
-                    CleanCompleteEvent.CleanType.ITEMS,
-                    count,
-                    duration,
-                    convertTrigger(trigger)
-                );
-                Bukkit.getPluginManager().callEvent(completeEvent);
-            });
+            fireCompleteEvent(CleanCompleteEvent.CleanType.ITEMS, count, duration, convertTrigger(trigger));
+            done.accept(count);
         });
     }
     
@@ -273,7 +280,20 @@ public class CleanerService {
      * Clean entities with batch processing and event support.
      */
     private void cleanEntitiesWithBatch(PreEntityCleanEvent.CleanTrigger trigger) {
+        cleanEntitiesWithBatch(trigger, count -> { });
+    }
+
+    /**
+     * Clean entities with batch processing and event support, reporting the outcome to {@code done}.
+     *
+     * @param trigger what started this cleanup
+     * @param done    receives the number of entities removed exactly once, on every path: 0 when an
+     *                entity batch is already running, when a listener cancelled the cleanup, or when
+     *                there was nothing to clean; otherwise the count, after the batch's last tick
+     */
+    private void cleanEntitiesWithBatch(PreEntityCleanEvent.CleanTrigger trigger, IntConsumer done) {
         if (entityCleaningInProgress) {
+            done.accept(0);
             return;
         }
         
@@ -287,6 +307,7 @@ public class CleanerService {
         
         if (preEvent.isCancelled()) {
             broadcastMessage(cleanCancelledText());
+            done.accept(0);
             return;
         }
         
@@ -294,6 +315,7 @@ public class CleanerService {
         List<UUID> finalEntities = preEvent.getEntityUuids();
         
         if (finalEntities.isEmpty()) {
+            done.accept(0);
             return;
         }
         
@@ -303,18 +325,18 @@ public class CleanerService {
             entityCleaningInProgress = false;
             long duration = System.currentTimeMillis() - startTime;
             broadcastEntityCleaned(count);
-            
-            // Fire complete event (async)
-            Bukkit.getScheduler().runTaskAsynchronously(bukkitPlugin, () -> {
-                CleanCompleteEvent completeEvent = new CleanCompleteEvent(
-                    CleanCompleteEvent.CleanType.ENTITIES,
-                    count,
-                    duration,
-                    convertTrigger(trigger)
-                );
-                Bukkit.getPluginManager().callEvent(completeEvent);
-            });
+            fireCompleteEvent(CleanCompleteEvent.CleanType.ENTITIES, count, duration, convertTrigger(trigger));
+            done.accept(count);
         });
+    }
+
+    /**
+     * Fire a {@link CleanCompleteEvent} asynchronously, as every completed cleanup does.
+     */
+    private void fireCompleteEvent(CleanCompleteEvent.CleanType type, int count, long durationMs,
+                                   CleanCompleteEvent.CleanTrigger trigger) {
+        Bukkit.getScheduler().runTaskAsynchronously(bukkitPlugin, () ->
+                Bukkit.getPluginManager().callEvent(new CleanCompleteEvent(type, count, durationMs, trigger)));
     }
     
     /**
@@ -596,6 +618,40 @@ public class CleanerService {
         return entities.size();
     }
     
+    /**
+     * Force an immediate item cleanup and entity cleanup together ({@code /clean all}).
+     * <p>
+     * Each half fires its own {@code ITEMS} or {@code ENTITIES} {@link CleanCompleteEvent} exactly as
+     * {@link #forceCleanItems()} and {@link #forceCleanEntities()} do. Once both halves have finished --
+     * removed their last entity, found nothing to clean, or been cancelled by a pre-clean listener --
+     * one further event of type {@link CleanCompleteEvent.CleanType#ALL} is fired with the combined
+     * removed count, the time since this call, and trigger {@code MANUAL} (UltiKits/UltiCleaner#16).
+     *
+     * @return the numbers of items and of entities collected for cleaning, in that order
+     *         (actual removal is batched over the following ticks)
+     */
+    public int[] forceCleanAll() {
+        long startTime = System.currentTimeMillis();
+        int itemCount = collectItemsToClean().size();
+        int entityCount = collectEntitiesToClean(new HashMap<>()).size();
+
+        AtomicInteger halvesPending = new AtomicInteger(2);
+        AtomicInteger removed = new AtomicInteger(0);
+        IntConsumer halfDone = count -> {
+            removed.addAndGet(count);
+            if (halvesPending.decrementAndGet() == 0) {
+                fireCompleteEvent(CleanCompleteEvent.CleanType.ALL, removed.get(),
+                        System.currentTimeMillis() - startTime, CleanCompleteEvent.CleanTrigger.MANUAL);
+            }
+        };
+        cleanItemsWithBatch(PreItemCleanEvent.CleanTrigger.MANUAL, halfDone);
+        cleanEntitiesWithBatch(PreEntityCleanEvent.CleanTrigger.MANUAL, halfDone);
+
+        itemCountdown = config.getItemCleanInterval();
+        entityCountdown = config.getEntityCleanInterval();
+        return new int[] {itemCount, entityCount};
+    }
+
     /**
      * Get current entity counts for status display.
      */

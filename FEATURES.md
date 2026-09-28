@@ -105,15 +105,13 @@ lifecycle-hook override under `## Lifecycle Hooks`, which is not a Bukkit event)
 own stated reason above) — each is instead documented in prose within the `## Automatic Cleanup`
 row of the method that fires it, Source-cited as `TriggeringMethod (fires EventClassName)`.
 
-**Two of `CleanCompleteEvent.CleanType`'s four constants are never constructed**, so a listener's
-`switch` arm for either can never execute. `CleanType.ALL` is never constructed because `/clean all`
-runs an item cleanup and an entity cleanup in succession, each firing its own event with its own
-type. `CleanType.CHUNKS` was never constructed either, and is now **permanently unconstructible**:
+**`CleanCompleteEvent.CleanType` has three constants, and every one is fired** (`UltiKits/UltiCleaner#16`).
+`ITEMS` and `ENTITIES` are fired when an item or an entity cleanup finishes, whatever started it.
+`ALL` is fired once per `/clean all`, after both of its halves have finished (each half has already
+fired its own `ITEMS` or `ENTITIES` event), with the combined count and trigger `MANUAL` — also when a
+listener cancelled one half or a half found nothing to clean. The former `CHUNKS` constant was removed:
 the chunk-unload feature that was its only conceivable producer was removed from this module
-(`UltiKits/UltiCleaner#27`). Both are tracked by `UltiKits/UltiCleaner#16`, which owns the decision
-about removing them — the constants are left in place here because removing one from a published
-enum is that issue's call, not this change's. This paragraph replaces the same statement that used
-to live in the deleted `ulticleaner.scheduled.chunk-unload` row.
+(`UltiKits/UltiCleaner#27`), so a listener's `CHUNKS` arm could never run.
 
 ## Commands
 
@@ -125,7 +123,7 @@ to live in the deleted `ulticleaner.scheduled.chunk-unload` row.
 |---|---|---|---|---|---|---|---|---|
 | ulticleaner.clean.items | Force an immediate item cleanup, bypassing the scheduled countdown; refuses with a "cleanup in progress" message if a cleanup is already running; fires `PreItemCleanEvent` (cancellable — see below) then removes matching items in batches of `batch.size` per tick | command | `/clean items` | ulticleaner.clean | both | admin | brief | CleanCommand#cleanItems, CleanerService#forceCleanItems |
 | ulticleaner.clean.entities | Force an immediate entity cleanup, bypassing the scheduled countdown; refuses with a "cleanup in progress" message if a cleanup is already running; fires `PreEntityCleanEvent` (cancellable) then removes matching entities in batches of `batch.size` per tick | command | `/clean entities` | ulticleaner.clean | both | admin | brief | CleanCommand#cleanEntities, CleanerService#forceCleanEntities |
-| ulticleaner.clean.all | Force both an item and an entity cleanup in the same tick. The item batch and the entity batch each have their own in-progress flag, so both run and each broadcasts its own completion line (fixed, `UltiKits/UltiCleaner#15`); refused while any cleanup is already running | command | `/clean all` | ulticleaner.clean | both | admin | detailed | CleanCommand#cleanAll, CleanerService#forceCleanItems, CleanerService#forceCleanEntities |
+| ulticleaner.clean.all | Force both an item and an entity cleanup in the same tick. The item batch and the entity batch each have their own in-progress flag, so both run and each broadcasts its own completion line (fixed, `UltiKits/UltiCleaner#15`); refused while any cleanup is already running | command | `/clean all` | ulticleaner.clean | both | admin | detailed | CleanCommand#cleanAll, CleanerService#forceCleanAll (fires CleanCompleteEvent ALL) |
 | ulticleaner.clean.check | Show a live count of ground items, cleanable mobs (matching `entity.types`, regardless of whitelist exemptions), total server-wide entities, the number of loaded chunks across every world, and the current TPS reading. The loaded-chunk figure is a plain server statistic, unconditional and unrelated to any cleanup this module performs; the former "unloadable chunks" line beside it was a readout of the chunk-unload feature and went with it (`UltiKits/UltiCleaner#27`) | command | `/clean check` | ulticleaner.clean | both | admin | brief | CleanCommand#check, CleanerService#getEntityCounts, CleanerService#getTotalLoadedChunks, TpsAwareScheduler#getTpsStatus |
 | ulticleaner.clean.status | Show seconds remaining until the next scheduled item and entity cleanup, whether a batch cleanup is currently in progress, the current TPS reading, and (when TPS is low or critical) a warning line. The warning names the actually-configured percentage, read from `tps.critical-reduction` or `tps.low-reduction` — the same value `TpsAwareScheduler#getThresholdMultiplier` applies — so changing either key changes this line (fixed, `UltiKits/UltiCleaner#21`) | command | `/clean status` | ulticleaner.clean | both | admin | detailed | CleanCommand#status, CleanerService#getItemCountdown, CleanerService#getEntityCountdown, CleanerService#isCleaningInProgress, TpsAwareScheduler#getTpsStatus, TpsAwareScheduler#isCriticalTps, TpsAwareScheduler#isLowTps, CleanerConfig#getLowTpsReduction, CleanerConfig#getCriticalTpsReduction |
 | ulticleaner.clean.help | Show the command list — five sub-commands (`items`, `entities`, `all`, `check`, `status`) since `chunks` was removed with the chunk-unload feature (`UltiKits/UltiCleaner#27`) — printed for a bare `/clean` with no matching sub-format, or for an explicit `/clean help` since the format matcher scores the empty format as the fallback | command | `/clean` (bare, no arguments) | ulticleaner.clean | both | player | brief | CleanCommand#help, CleanCommand#handleHelp |
