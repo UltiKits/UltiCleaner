@@ -43,6 +43,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- `item.whitelist` entries are now read the way the server reads a material name, so a lower-case
+  entry such as `diamond` protects diamonds. An entry that names no material (for example a typo) is
+  ignored and named in a console warning at start-up and on `/ul reload`; before, it was accepted
+  silently and protected nothing.
+- `item.whitelist` 中的条目现在按服务器解析材料名的方式读取，因此 `diamond` 这样的小写条目也能保护钻石。不是材料名的
+  条目（例如拼写错误）会被忽略，并在启动和 `/ul reload` 时于控制台警告中点名；此前它会被静默接受，却不保护任何物品。
+
 - `/upm uninstall UltiCleaner` now stops a cleanup that is still removing items or entities. The
   batch task belonged to the UltiTools plugin, so it kept deleting entities for a module that had
   already been unloaded until it reached the end of its list. A cleanup stopped this way broadcasts

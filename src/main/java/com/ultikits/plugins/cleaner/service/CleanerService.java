@@ -11,6 +11,7 @@ import com.ultikits.ultitools.annotations.Scheduled;
 import com.ultikits.ultitools.annotations.Service;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -108,10 +109,20 @@ public class CleanerService {
      * Load caches from config.
      */
     private void loadCaches() {
-        // Item whitelist
+        // Item whitelist, resolved the way the server resolves a material name, so a lower-case
+        // entry protects its material; an entry that names no material protects nothing and is
+        // named in a warning rather than accepted silently
         itemWhitelistCache = new HashSet<>();
         if (config.getItemWhitelist() != null) {
-            itemWhitelistCache.addAll(config.getItemWhitelist());
+            for (Object entry : config.getItemWhitelist()) {
+                Material material = entry == null ? null : Material.matchMaterial(String.valueOf(entry).trim());
+                if (material != null) {
+                    itemWhitelistCache.add(material.name());
+                } else {
+                    plugin.getLogger().warn(Placeholders.fill(plugin.i18n("log_unknown_whitelist_material"),
+                            "{VALUE}", String.valueOf(entry)));
+                }
+            }
         }
         
         // Entity types to clean
