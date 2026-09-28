@@ -356,8 +356,9 @@ public class CleanerService {
             itemCleaningInProgress = false;
             long duration = System.currentTimeMillis() - startTime;
             broadcastItemCleaned(count);
-            fireCompleteEvent(CleanCompleteEvent.CleanType.ITEMS, count, duration, convertTrigger(trigger));
-            done.accept(count);
+            // done runs after the ITEMS event has been dispatched, so an ALL event it completes follows it
+            fireCompleteEvent(CleanCompleteEvent.CleanType.ITEMS, count, duration, convertTrigger(trigger),
+                    () -> done.accept(count));
         });
     }
     
@@ -410,18 +411,39 @@ public class CleanerService {
             entityCleaningInProgress = false;
             long duration = System.currentTimeMillis() - startTime;
             broadcastEntityCleaned(count);
-            fireCompleteEvent(CleanCompleteEvent.CleanType.ENTITIES, count, duration, convertTrigger(trigger));
-            done.accept(count);
+            // done runs after the ENTITIES event has been dispatched, so an ALL event it completes follows it
+            fireCompleteEvent(CleanCompleteEvent.CleanType.ENTITIES, count, duration, convertTrigger(trigger),
+                    () -> done.accept(count));
         });
     }
 
     /**
-     * Fire a {@link CleanCompleteEvent} asynchronously, as every completed cleanup does.
+     * Fire a {@link CleanCompleteEvent} asynchronously, as every completed cleanup does, then run
+     * {@code afterDispatch} on the same asynchronous task once every listener has returned.
      */
     private void fireCompleteEvent(CleanCompleteEvent.CleanType type, int count, long durationMs,
-                                   CleanCompleteEvent.CleanTrigger trigger) {
-        Bukkit.getScheduler().runTaskAsynchronously(bukkitPlugin, () ->
-                Bukkit.getPluginManager().callEvent(new CleanCompleteEvent(type, count, durationMs, trigger)));
+                                   CleanCompleteEvent.CleanTrigger trigger, Runnable afterDispatch) {
+        Bukkit.getScheduler().runTaskAsynchronously(bukkitPlugin, () -> {
+            Bukkit.getPluginManager().callEvent(new CleanCompleteEvent(type, count, durationMs, trigger));
+            afterDispatch.run();
+        });
+    }
+
+    /**
+     * Fire the {@code ALL} event of {@code /clean all}. Called by whichever half finishes last: from the
+     * asynchronous task that has just dispatched that half's own event, where it is dispatched
+     * directly, so it follows both component events (separately submitted asynchronous tasks may run in
+     * any order); or, for a half that fired no event (nothing to clean, or cancelled), from the main
+     * thread, where the asynchronous event has to be handed to the scheduler.
+     */
+    private void fireAllEvent(int count, long durationMs) {
+        Runnable dispatch = () -> Bukkit.getPluginManager().callEvent(new CleanCompleteEvent(
+                CleanCompleteEvent.CleanType.ALL, count, durationMs, CleanCompleteEvent.CleanTrigger.MANUAL));
+        if (Bukkit.isPrimaryThread()) {
+            Bukkit.getScheduler().runTaskAsynchronously(bukkitPlugin, dispatch);
+        } else {
+            dispatch.run();
+        }
     }
     
     /**
@@ -732,8 +754,7 @@ public class CleanerService {
         IntConsumer halfDone = count -> {
             removed.addAndGet(count);
             if (halvesPending.decrementAndGet() == 0) {
-                fireCompleteEvent(CleanCompleteEvent.CleanType.ALL, removed.get(),
-                        System.currentTimeMillis() - startTime, CleanCompleteEvent.CleanTrigger.MANUAL);
+                fireAllEvent(removed.get(), System.currentTimeMillis() - startTime);
             }
         };
         cleanItemsWithBatch(PreItemCleanEvent.CleanTrigger.MANUAL, halfDone);
