@@ -43,6 +43,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Countdown warnings before a scheduled cleanup ("Ground items will be cleaned in T seconds!" and the
+  entity line) are broadcast again. The framework reads each `item.warn-times` / `entity.warn-times`
+  entry from `config/cleaner.yml` as text, and the module compared it with a number, so no warning was
+  ever sent once the file existed. Each entry is now read as a whole number of seconds. A list with an
+  entry that is not a whole number (for example `2.5`) is not used: the default
+  `[60, 30, 10, 5, 3, 2, 1]` applies, and start-up and `/ul reload` log a warning naming the key, the
+  list as written and the default (UltiKits/UltiCleaner#22).
+- 定时清理前的倒计时警告（「地面物品将在 T 秒后清理！」及实体那一行）恢复广播。框架把 `config/cleaner.yml` 中
+  `item.warn-times` / `entity.warn-times` 的每一项读成文本，而模块拿它与数字比较，所以文件存在后从未发出过任何警告。
+  现在每一项都按整数秒读取。若列表中有不是整数的项（例如 `2.5`），该列表不予采用，改用默认值
+  `[60, 30, 10, 5, 3, 2, 1]`，并在启动和 `/ul reload` 时记一条警告，写明键名、列表原值与默认值（UltiKits/UltiCleaner#22）。
+
 - The warning about a key this version no longer reads now prints the configuration file's path exactly
   as it is. A path containing `{KEY}` or `{REASON}` was rewritten by the placeholders filled after it.
 - 关于本版本已不再读取的配置键的警告，现在会原样打印配置文件路径。此前路径中若含有 `{KEY}` 或 `{REASON}`，

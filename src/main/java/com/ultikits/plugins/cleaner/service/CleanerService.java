@@ -4,6 +4,7 @@ import com.ultikits.plugins.cleaner.config.CleanerConfig;
 import com.ultikits.plugins.cleaner.events.CleanCompleteEvent;
 import com.ultikits.plugins.cleaner.events.PreEntityCleanEvent;
 import com.ultikits.plugins.cleaner.events.PreItemCleanEvent;
+import com.ultikits.plugins.cleaner.utils.Placeholders;
 import com.ultikits.ultitools.abstracts.UltiToolsPlugin;
 import com.ultikits.ultitools.annotations.Autowired;
 import com.ultikits.ultitools.annotations.Scheduled;
@@ -113,9 +114,64 @@ public class CleanerService {
             worldBlacklistCache.addAll(config.getWorldBlacklist());
         }
         
+        // Tell the operator about a warn-times list the countdown cannot use
+        warnIfNotWholeSeconds("item.warn-times", config.getItemWarnTimes());
+        warnIfNotWholeSeconds("entity.warn-times", config.getEntityWarnTimes());
+
         // Initialize countdowns
         itemCountdown = config.getItemCleanInterval();
         entityCountdown = config.getEntityCleanInterval();
+    }
+
+    /**
+     * The countdown marks of a {@code warn-times} list, as whole seconds.
+     * <p>
+     * The framework's config parser binds each element of a list read from the file as its string
+     * form, whatever the field's declared element type, so a {@code contains(int)} lookup never
+     * matched and no countdown warning was ever broadcast (UltiKits/UltiCleaner#22). Each element is
+     * therefore read through its text. A list with an element that is not a whole number is not used:
+     * {@link CleanerConfig#DEFAULT_WARN_TIMES} is used instead, and {@link #loadCaches()} names the
+     * list once at enable and reload. The list is read from the config on every tick, as before, so a
+     * change applies without waiting for a reload.
+     *
+     * @param configured the list as bound from the file; {@code null} means no warnings
+     * @return the marks to warn at
+     */
+    private static Set<Integer> warnSeconds(List<?> configured) {
+        Set<Integer> parsed = parseWholeSeconds(configured);
+        return parsed != null ? parsed : new HashSet<>(CleanerConfig.DEFAULT_WARN_TIMES);
+    }
+
+    /**
+     * @return the elements as whole numbers, an empty set for {@code null}, or {@code null} when any
+     *         element is not a whole number
+     */
+    private static Set<Integer> parseWholeSeconds(List<?> configured) {
+        Set<Integer> seconds = new HashSet<>();
+        if (configured == null) {
+            return seconds;
+        }
+        for (Object element : configured) {
+            if (element == null) {
+                return null;
+            }
+            try {
+                seconds.add(Integer.parseInt(String.valueOf(element).trim()));
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return seconds;
+    }
+
+    private void warnIfNotWholeSeconds(String key, List<?> configured) {
+        if (parseWholeSeconds(configured) == null) {
+            // The operator's value goes in with the others in one pass, so it is printed as written
+            plugin.getLogger().warn(Placeholders.fill(plugin.i18n("log_invalid_warn_times"),
+                    "{KEY}", key,
+                    "{VALUE}", String.valueOf(configured),
+                    "{DEFAULT}", String.valueOf(CleanerConfig.DEFAULT_WARN_TIMES)));
+        }
     }
     
     
@@ -189,7 +245,7 @@ public class CleanerService {
         itemCountdown--;
         
         // Check if we need to warn
-        if (config.getItemWarnTimes() != null && config.getItemWarnTimes().contains(itemCountdown)) {
+        if (warnSeconds(config.getItemWarnTimes()).contains(itemCountdown)) {
             broadcastWarn(itemCountdown);
         }
         
@@ -212,7 +268,7 @@ public class CleanerService {
         entityCountdown--;
         
         // Check if we need to warn for entities
-        if (config.getEntityWarnTimes() != null && config.getEntityWarnTimes().contains(entityCountdown)) {
+        if (warnSeconds(config.getEntityWarnTimes()).contains(entityCountdown)) {
             broadcastEntityWarn(entityCountdown);
         }
         
