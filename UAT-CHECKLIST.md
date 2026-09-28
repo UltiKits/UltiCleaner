@@ -120,7 +120,7 @@ positive control, because a check that never fires and a file with no leftover k
 same (empty) console. `ulticleaner.lifecycle.legacy-message-defaults` exercises the start-up step
 that rewrites a broadcast message still holding the Chinese default an earlier version shipped in the
 server's language; it observes the item-cleaned broadcast after `/clean items`, which
-does not depend on the countdown warnings `UltiKits/UltiTools-Reborn#523` suppresses. `ulticleaner.config.cleaner.materialize-fresh` and
+does not depend on the countdown warnings. `ulticleaner.config.cleaner.materialize-fresh` and
 `ulticleaner.config.cleaner.materialize-switch` exercise the same step on a file written fresh and across a
 `language` switch in both directions; they run back to back, the second continuing from the first's state.
 
