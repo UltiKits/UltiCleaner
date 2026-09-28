@@ -1024,7 +1024,7 @@ class CleanerServiceTest {
             when(config.isSmartCleanEnabled()).thenReturn(true);
             initServiceWithEmptyConfig();
 
-            UltiCleanerTestHelper.setField(service, "isCleaningInProgress", true);
+            UltiCleanerTestHelper.setField(service, "itemCleaningInProgress", true);
 
             Method method = CleanerService.class.getDeclaredMethod("checkSmartClean");
             method.setAccessible(true);
@@ -1210,7 +1210,7 @@ class CleanerServiceTest {
         void skipWhenCleaningInProgress() throws Exception {
             initServiceWithEmptyConfig();
 
-            UltiCleanerTestHelper.setField(service, "isCleaningInProgress", true);
+            UltiCleanerTestHelper.setField(service, "itemCleaningInProgress", true);
 
             Method method = CleanerService.class.getDeclaredMethod("cleanItemsWithBatch", PreItemCleanEvent.CleanTrigger.class);
             method.setAccessible(true);
@@ -1342,7 +1342,7 @@ class CleanerServiceTest {
         void skipWhenCleaningInProgress() throws Exception {
             initServiceWithEmptyConfig();
 
-            UltiCleanerTestHelper.setField(service, "isCleaningInProgress", true);
+            UltiCleanerTestHelper.setField(service, "entityCleaningInProgress", true);
 
             Method method = CleanerService.class.getDeclaredMethod("cleanEntitiesWithBatch", PreEntityCleanEvent.CleanTrigger.class);
             method.setAccessible(true);
@@ -1657,9 +1657,17 @@ class CleanerServiceTest {
         }
 
         @Test
-        @DisplayName("Should return true when set via reflection")
-        void trueWhenSet() throws Exception {
-            UltiCleanerTestHelper.setField(service, "isCleaningInProgress", true);
+        @DisplayName("Should return true while an item batch runs (UltiKits/UltiCleaner#15)")
+        void trueWhileItemBatchRuns() throws Exception {
+            UltiCleanerTestHelper.setField(service, "itemCleaningInProgress", true);
+
+            assertThat(service.isCleaningInProgress()).isTrue();
+        }
+
+        @Test
+        @DisplayName("Should return true while an entity batch runs (UltiKits/UltiCleaner#15)")
+        void trueWhileEntityBatchRuns() throws Exception {
+            UltiCleanerTestHelper.setField(service, "entityCleaningInProgress", true);
 
             assertThat(service.isCleaningInProgress()).isTrue();
         }
@@ -1873,21 +1881,20 @@ class CleanerServiceTest {
         }
 
         @Test
-        @DisplayName("Should set cleaning in progress when batch starts")
+        @DisplayName("Should set cleaning in progress when an item batch starts, until its timer task completes")
         void setsCleaningInProgress() throws Exception {
+            World world = UltiCleanerTestHelper.createMockWorld("world");
+            Item item = createMockItem(world, "STONE", false, 1000);
+            when(world.getEntities()).thenReturn(Arrays.asList(item));
+            UltiCleanerTestHelper.addMockWorld(world);
+            when(config.getItemIgnoreRecentSeconds()).thenReturn(0);
+            when(config.isItemIgnoreNamed()).thenReturn(false);
             initServiceWithEmptyConfig();
 
-            List<UUID> uuids = Arrays.asList(UUID.randomUUID());
+            service.forceCleanItems();
 
-            Method method = CleanerService.class.getDeclaredMethod("removeEntitiesInBatches",
-                    List.class, int.class, java.util.function.Consumer.class);
-            method.setAccessible(true);
-
-            java.util.function.Consumer<Integer> callback = count -> {};
-
-            method.invoke(service, uuids, 50, callback);
-
-            // isCleaningInProgress should be true until the timer task completes
+            // The in-progress flag is owned by the batch's caller (UltiKits/UltiCleaner#15) and is
+            // true until the timer task completes
             assertThat(service.isCleaningInProgress()).isTrue();
         }
 
