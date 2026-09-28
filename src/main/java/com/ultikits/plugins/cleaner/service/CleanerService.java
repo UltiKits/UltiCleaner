@@ -55,8 +55,11 @@ public class CleanerService {
     // Smart clean tracking
     private long lastSmartCleanTime = 0;
 
-    // Batch processing state
-    private boolean isCleaningInProgress = false;
+    // Batch processing state: one flag per batch kind, so an item batch and an entity batch started
+    // in the same tick both run (UltiKits/UltiCleaner#15). Each flag is set by the method that starts
+    // its batch and cleared when that batch's timer task finishes.
+    private boolean itemCleaningInProgress = false;
+    private boolean entityCleaningInProgress = false;
     
     /**
      * Initialize the cleaner service.
@@ -121,7 +124,7 @@ public class CleanerService {
      */
     @Scheduled(period = 100, async = false)
     public void checkSmartClean() {
-        if (!config.isSmartCleanEnabled() || isCleaningInProgress) {
+        if (!config.isSmartCleanEnabled() || isCleaningInProgress()) {
             return;
         }
         
@@ -222,7 +225,7 @@ public class CleanerService {
      * Clean items with batch processing and event support.
      */
     private void cleanItemsWithBatch(PreItemCleanEvent.CleanTrigger trigger) {
-        if (isCleaningInProgress) {
+        if (itemCleaningInProgress) {
             return;
         }
         
@@ -247,7 +250,9 @@ public class CleanerService {
         }
         
         // Batch remove
+        itemCleaningInProgress = true;
         removeEntitiesInBatches(finalItems, config.getCleanBatchSize(), count -> {
+            itemCleaningInProgress = false;
             long duration = System.currentTimeMillis() - startTime;
             broadcastItemCleaned(count);
             
@@ -268,7 +273,7 @@ public class CleanerService {
      * Clean entities with batch processing and event support.
      */
     private void cleanEntitiesWithBatch(PreEntityCleanEvent.CleanTrigger trigger) {
-        if (isCleaningInProgress) {
+        if (entityCleaningInProgress) {
             return;
         }
         
@@ -293,7 +298,9 @@ public class CleanerService {
         }
         
         // Batch remove
+        entityCleaningInProgress = true;
         removeEntitiesInBatches(finalEntities, config.getCleanBatchSize(), count -> {
+            entityCleaningInProgress = false;
             long duration = System.currentTimeMillis() - startTime;
             broadcastEntityCleaned(count);
             
@@ -405,6 +412,9 @@ public class CleanerService {
     
     /**
      * Remove entities in batches to avoid lag spikes.
+     * <p>
+     * Holds no in-progress state of its own: the caller owns its batch kind's flag and clears it in
+     * {@code onComplete}, which runs once the last batch tick has finished.
      */
     private void removeEntitiesInBatches(List<UUID> uuids, int batchSize, java.util.function.Consumer<Integer> onComplete) {
         if (uuids.isEmpty()) {
@@ -412,7 +422,6 @@ public class CleanerService {
             return;
         }
         
-        isCleaningInProgress = true;
         AtomicInteger removedCount = new AtomicInteger(0);
         AtomicInteger currentIndex = new AtomicInteger(0);
         int totalCount = uuids.size();
@@ -445,7 +454,6 @@ public class CleanerService {
             // Check if done
             if (currentIndex.get() >= uuids.size()) {
                 task.cancel();
-                isCleaningInProgress = false;
                 onComplete.accept(removedCount.get());
             }
         }, 0L, 1L);
@@ -632,10 +640,30 @@ public class CleanerService {
     }
     
     /**
-     * Check if cleanup is currently in progress.
+     * Check if any cleanup is currently in progress.
+     *
+     * @return true while an item batch or an entity batch is running
      */
     public boolean isCleaningInProgress() {
-        return isCleaningInProgress;
+        return itemCleaningInProgress || entityCleaningInProgress;
+    }
+
+    /**
+     * Check if an item cleanup batch is currently running.
+     *
+     * @return true from the start of an item batch until its last tick finishes
+     */
+    public boolean isItemCleaningInProgress() {
+        return itemCleaningInProgress;
+    }
+
+    /**
+     * Check if an entity cleanup batch is currently running.
+     *
+     * @return true from the start of an entity batch until its last tick finishes
+     */
+    public boolean isEntityCleaningInProgress() {
+        return entityCleaningInProgress;
     }
     
     /**

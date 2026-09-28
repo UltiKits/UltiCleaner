@@ -43,6 +43,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- `/clean all` now removes entities as well as ground items. The item cleanup and the entity cleanup
+  shared one "cleaning in progress" flag, so an entity cleanup started in the same tick as an item
+  cleanup was skipped without a message while `/clean all` still reported the entities as started.
+  The same collision dropped the mob cleanup when smart cleanup exceeded both thresholds at once, and
+  dropped one of the two scheduled cleanups whenever their countdowns reached zero in the same second.
+  Each cleanup now has its own flag; `/clean items`, `/clean entities` and `/clean all` still refuse
+  while any cleanup is running (UltiKits/UltiCleaner#15).
+- `/clean all` 现在会同时清理实体和地面物品。此前物品清理与实体清理共用同一个「清理进行中」标记，与物品清理
+  在同一 tick 开始的实体清理会被静默跳过，而 `/clean all` 仍报告这些实体已开始清理。同一冲突也会让智能清理在
+  两个阈值同时超出时漏掉生物清理，并在两个定时倒计时同一秒归零时漏掉其中一个。现在两种清理各有自己的标记；
+  任一清理进行中时，`/clean items`、`/clean entities` 与 `/clean all` 仍会拒绝执行（UltiKits/UltiCleaner#15）。
+
 - `language: en` now applies to everything `/clean` prints (the started, in-progress, `check`,
   `status` and help lines) and to the command description, which were fixed Chinese text in every
   language although the language files already held English text for most of them
