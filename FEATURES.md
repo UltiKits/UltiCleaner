@@ -116,9 +116,11 @@ the chunk-unload feature that was its only conceivable producer was removed from
 
 ## Commands
 
-`CleanCommand` — class-level `@CmdExecutor(alias = {"clean", "cleaner", "clear"}, permission =
+`CleanCommand` — class-level `@CmdExecutor(alias = {"clean", "cleaner"}, permission =
 "ulticleaner.clean", description = "command_description")`, a language key the framework translates
-("Clean up ground items and entities" under `language: en`). No class-level `@CmdTarget`.
+("Clean up ground items and entities" under `language: en`). No class-level `@CmdTarget`. The former
+`clear` alias was removed: it took over vanilla's `/clear` inventory command, which now reaches vanilla
+again (`UltiKits/UltiCleaner#30`).
 
 | ID | Feature | Kind | How to reach | Permission | Target | Tier | Manual | Source |
 |---|---|---|---|---|---|---|---|---|

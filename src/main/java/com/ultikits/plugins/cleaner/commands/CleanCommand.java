@@ -21,7 +21,8 @@ import java.util.Map;
  * @version 2.0.0
  */
 @CmdExecutor(
-    alias = {"clean", "cleaner", "clear"},
+    // No "clear": that is vanilla's inventory-clear command, which the alias took over (UltiKits/UltiCleaner#30)
+    alias = {"clean", "cleaner"},
     permission = "ulticleaner.clean",
     description = "command_description"
 )

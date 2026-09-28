@@ -124,6 +124,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Removed
 
+- Removed the `clear` alias of `/clean`. It took over vanilla's `/clear` command, so `/clear <player>`
+  printed this module's help instead of clearing an inventory. `/clear` is vanilla's again; use
+  `/clean` or `/cleaner` for this module (UltiKits/UltiCleaner#30).
+- 删除了 `/clean` 的别名 `clear`。它接管了原版的 `/clear` 命令，导致 `/clear <玩家>` 只显示本模块的帮助、不会清空背包。
+  现在 `/clear` 重新归原版所有；本模块请使用 `/clean` 或 `/cleaner`（UltiKits/UltiCleaner#30）。
+
 - For plugin authors: removed `CleanCompleteEvent.CleanType.CHUNKS`. Nothing could fire it once the
   chunk-unload feature was removed, so a listener's `CHUNKS` branch could never run. A plugin that
   names the constant must drop that branch before it compiles against this version
