@@ -43,6 +43,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- The warning about a key this version no longer reads now prints the configuration file's path exactly
+  as it is. A path containing `{KEY}` or `{REASON}` was rewritten by the placeholders filled after it.
+- 关于本版本已不再读取的配置键的警告，现在会原样打印配置文件路径。此前路径中若含有 `{KEY}` 或 `{REASON}`，
+  会被随后填入的占位符改写。
+
 - For plugin authors: `/clean all` now fires one `CleanCompleteEvent` of type `ALL` after both of its
   halves have finished, with the combined count and trigger `MANUAL`. Each half still fires its own
   `ITEMS` or `ENTITIES` event first, as before. `CleanType.ALL` was declared but never fired
