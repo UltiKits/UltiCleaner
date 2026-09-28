@@ -19,6 +19,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Tameable;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -62,6 +63,12 @@ public class CleanerService {
     // its batch and cleared when that batch's timer task finishes.
     private boolean itemCleaningInProgress = false;
     private boolean entityCleaningInProgress = false;
+
+    // The batch tasks currently running, and whether the module is unloading. The tasks belong to the
+    // UltiTools plugin, so neither Bukkit nor the framework cancels them when this module is unloaded;
+    // shutdown() does (UltiKits/UltiCleaner#26). Main thread only, like every batch tick.
+    private final Set<BukkitTask> batchTasks = new HashSet<>();
+    private boolean shutDown = false;
     
     /**
      * Initialize the cleaner service.
@@ -72,11 +79,22 @@ public class CleanerService {
     }
 
     /**
-     * Shutdown the cleaner service.
-     * Note: Tasks are now automatically cancelled by the framework.
+     * Shutdown the cleaner service, from the module's unload hook.
+     * <p>
+     * The framework cancels the {@code @Scheduled} ticks that start a cleanup, but not a batch task a
+     * cleanup has already started: it belongs to the UltiTools plugin, so it would go on removing
+     * entities after the module is gone (UltiKits/UltiCleaner#26). Every running batch task is
+     * cancelled here, and a batch scheduled but not yet run cancels itself on its first tick. A batch
+     * stopped this way broadcasts nothing and fires no {@link CleanCompleteEvent}.
      */
     public void shutdown() {
-        // No manual task cancellation needed - framework handles @Scheduled tasks
+        shutDown = true;
+        for (BukkitTask task : new ArrayList<>(batchTasks)) {
+            task.cancel();
+        }
+        batchTasks.clear();
+        itemCleaningInProgress = false;
+        entityCleaningInProgress = false;
     }
 
     /**
@@ -505,6 +523,12 @@ public class CleanerService {
         int totalCount = uuids.size();
         
         Bukkit.getScheduler().runTaskTimer(bukkitPlugin, task -> {
+            if (shutDown) {
+                task.cancel();
+                batchTasks.remove(task);
+                return;
+            }
+            batchTasks.add(task);
             int processed = 0;
             
             while (processed < batchSize && currentIndex.get() < uuids.size()) {
@@ -532,6 +556,7 @@ public class CleanerService {
             // Check if done
             if (currentIndex.get() >= uuids.size()) {
                 task.cancel();
+                batchTasks.remove(task);
                 onComplete.accept(removedCount.get());
             }
         }, 0L, 1L);

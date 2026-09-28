@@ -23,12 +23,13 @@ for UAT execution and issue reconciliation — the public description of these f
   This module has 0 `@EventListener` classes and 0 `@EventHandler` methods — it drives everything
   from its own four `@Scheduled` tasks, never from a Bukkit event this module itself listens for —
   so no `event` row is backed by a listener annotation site and the `@EventListener`
-  reconciliation line below stays 0 against 0. It carries exactly two `event`-Kind rows, both in
-  `## Lifecycle Hooks` below: `ulticleaner.lifecycle.reload` and
-  `ulticleaner.lifecycle.removed-key-warning`. Both are driven from callbacks the framework
-  invokes (`registerSelf()` and `onReload()`), not from a command this module maps or a config key
-  it reads, and both are reached by overriding a framework method rather than through an
-  annotation site, so no reconciliation line counts either. This module has no `gui` rows (no GUI page class), no `placeholder` rows (no
+  reconciliation line below stays 0 against 0. It carries exactly four `event`-Kind rows, all in
+  `## Lifecycle Hooks` below: `ulticleaner.lifecycle.removed-key-warning`,
+  `ulticleaner.lifecycle.legacy-message-defaults`, `ulticleaner.lifecycle.unload-mid-batch` and
+  `ulticleaner.lifecycle.reload`. All four are driven from callbacks the framework invokes
+  (`registerSelf()`, `onReload()` and `onUnregister()`), not from a command this module maps or a
+  config key it reads, and all are reached by overriding a framework method rather than through an
+  annotation site, so no reconciliation line counts any of them. This module has no `gui` rows (no GUI page class), no `placeholder` rows (no
   `PlaceholderExpansion`), no `persistence` rows (no `@Table` entity — every state this module
   keeps is either transient runtime state or the `config/cleaner.yml` file itself), and no `gate`
   rows (0 `@ConditionalOnConfig` sites). All four stay in the vocabulary for cross-repository
@@ -194,8 +195,9 @@ repository, so no `command`-Kind row is added for it) runs, in order:
 framework's own per-module reload INFO line, and finally `onReload()`. Before the migration this
 module overrode `reloadSelf()` itself, so neither the config re-read nor the language refresh ran:
 `config/cleaner.yml` was never re-read and `CleanerService#reload()` rebuilt its caches from the stale values. This
-module declares no `onUnregister()` override: its former unload override only logged a
-"disabled" line, and it was deleted along with the `cleaner_disabled` language key.
+module's former unload override only logged a "disabled" line, and it was deleted along with the
+`cleaner_disabled` language key. `UltiCleaner#onUnregister()` now exists for a different reason: it
+stops a cleanup batch still running when the module is unloaded (`UltiKits/UltiCleaner#26`).
 
 `UltiCleaner#registerSelf()` is the other framework-invoked callback with a row below. Besides
 initialising the services, it runs the removed-key check: this version deleted five configuration
@@ -206,6 +208,7 @@ framework writes a declared default only for a key that is *missing* and never r
 |---|---|---|---|---|---|---|---|---|
 | ulticleaner.lifecycle.removed-key-warning | On module enable and again on every `/ul reload`, read the operator's own `config/cleaner.yml` and log one WARNING per key this version no longer reads but which is still present in that file — `messages.prefix`, `chunk.enabled`, `chunk.max-distance`, `chunk.batch-size`, `chunk.timeout`. Each warning names the module, the file's path and the key, says the key no longer has any effect, says where the setting went (for `messages.prefix`, nowhere new: nothing ever read it, and a broadcast's prefix is part of that broadcast's own `messages.*` text; for the four chunk keys, nowhere, since that feature was removed), and tells the operator to delete the key to silence it; the line comes from the language file, so it follows the `language` setting. Nothing is logged when the file holds none of them, when the file is absent, or when it cannot be parsed — the framework's own config loading already reports an unparseable file, and a second message would only add noise. Deleting a key from `CleanerConfig` stops the framework WRITING it into a fresh file but does nothing to files already on disk: the framework writes a declared default only for a key that is missing, so an existing install keeps the key, keeps its value, and would otherwise get no indication the value stopped meaning anything | event | automatic, at module enable and at `/ul reload UltiCleaner` | n/a | n/a | admin | brief | UltiCleaner#registerSelf, UltiCleaner#onReload, RemovedConfigKeys#warnAboutLeftovers |
 | ulticleaner.lifecycle.legacy-message-defaults | On module enable and again on every reload of it (`UltiCleaner#registerSelf`, `#onReload`, both after the framework has read `config/cleaner.yml` and loaded the language — never from a configuration change listener, which the framework fires before it reloads the language): each of the seven `messages.*` values that is still built-in text — the Chinese default an earlier version shipped, or this jar's English or Chinese text for it (read from the module jar, never from the language files on disk) — and differs from the current text is replaced with the language file's text in the server's language, and the file is saved once. An untouched value therefore follows a `language` switch in both directions; a value that differs in any way, even by one character, is the operator's and is kept byte for byte; a text that would break the setting's `@NotEmpty` is never written; a second start with the same language writes nothing. A single-module `/ul reload UltiCleaner` does not re-read the framework's `language`, so a changed `language` is picked up on a bare `/ul reload` or a restart. A failed save is logged as one warning from the language file (`log_config_default_save_failed`) The text written is this jar's own built-in text for the server's language (the jar's `lang/<language>.*`), not the extracted language file on disk, so every value the module writes is one it recognises again; these settings are edited in the config file, and an edit of the extracted language file does not change them (earlier versions never read them from the language file either). | event | automatic, at module enable and at `/ul reload` | n/a | n/a | admin | brief | UltiCleaner#registerSelf, UltiCleaner#onReload, CleanerConfig#materializeText, ConfigTextDefaults |
+| ulticleaner.lifecycle.unload-mid-batch | When the module is unloaded (`/upm uninstall UltiCleaner`) while an item or entity cleanup batch is still removing things, stop that batch: nothing more is removed, and no "Cleaned N" broadcast or `CleanCompleteEvent` follows for it. The batch task belongs to the UltiTools plugin, so before this fix it kept removing entities for a module that was already gone (fixed, `UltiKits/UltiCleaner#26`) | event | `/upm uninstall UltiCleaner` (the framework calls `unregisterSelf()`, which invokes this hook before it unregisters the command) | n/a | n/a | admin | brief | UltiCleaner#onUnregister, CleanerService#shutdown |
 | ulticleaner.lifecycle.reload | Rebuild `CleanerService`'s item-whitelist, entity-type and world-blacklist caches from the just-reloaded `config/cleaner.yml`, reset both the item and the entity cleanup countdowns to the reloaded `item.interval` and `entity.interval` values, and log the module's own `cleaner_reloaded` line, after the framework has already re-read the config file | event | `/ul reload UltiCleaner` (framework calls `reloadSelf()`, which runs its own steps first, then invokes this hook) | n/a | n/a | admin | brief | UltiCleaner#onReload, CleanerService#reload |
 
 ## Language

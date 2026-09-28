@@ -43,6 +43,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- `/upm uninstall UltiCleaner` now stops a cleanup that is still removing items or entities. The
+  batch task belonged to the UltiTools plugin, so it kept deleting entities for a module that had
+  already been unloaded until it reached the end of its list. A cleanup stopped this way broadcasts
+  nothing (UltiKits/UltiCleaner#26).
+- `/upm uninstall UltiCleaner` 现在会停止仍在移除物品或实体的清理。此前分批任务属于 UltiTools 插件，模块卸载后它仍会
+  继续删除实体，直到处理完整个列表。以这种方式停止的清理不会发出任何广播（UltiKits/UltiCleaner#26）。
+
 - Countdown warnings before a scheduled cleanup ("Ground items will be cleaned in T seconds!" and the
   entity line) are broadcast again. The framework reads each `item.warn-times` / `entity.warn-times`
   entry from `config/cleaner.yml` as text, and the module compared it with a number, so no warning was

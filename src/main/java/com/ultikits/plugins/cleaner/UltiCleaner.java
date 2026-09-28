@@ -70,6 +70,20 @@ public class UltiCleaner extends UltiToolsPlugin {
     }
 
     /**
+     * Stops a cleanup batch that is still running when the module is unloaded (for example by
+     * {@code /upm uninstall}); the framework runs this before it unregisters the module's command.
+     * The batch tasks belong to the UltiTools plugin, so nothing else would stop them
+     * (UltiKits/UltiCleaner#26).
+     */
+    @Override
+    protected void onUnregister() {
+        CleanerService cleanerService = getContext().getBean(CleanerService.class);
+        if (cleanerService != null) {
+            cleanerService.shutdown();
+        }
+    }
+
+    /**
      * Writes every broadcast message in {@code config/cleaner.yml} that is still built-in text in the
      * server's language and saves the file once, so the file holds what the module broadcasts; any other
      * value is the operator's and is kept (maintainer decision 2026-09-25, UltiKits/UltiCleaner#17).
