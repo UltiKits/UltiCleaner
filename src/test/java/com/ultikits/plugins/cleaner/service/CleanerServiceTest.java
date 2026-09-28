@@ -2131,4 +2131,118 @@ class CleanerServiceTest {
             assertThat(service.getTotalLoadedChunks()).isZero();
         }
     }
+
+    // ==================== UltiKits/UltiCleaner#15 ====================
+
+    @Nested
+    @DisplayName("Item and entity batches run independently (UltiKits/UltiCleaner#15)")
+    class IndependentBatches {
+
+        private Item item;
+        private LivingEntity zombie;
+
+        private void worldWithOneItemAndOneZombie() {
+            World world = UltiCleanerTestHelper.createMockWorld("world");
+            item = createMockItem(world, "STONE", false, 1000);
+            zombie = createMockLivingEntity(world, EntityType.ZOMBIE, null, false);
+            when(world.getEntities()).thenReturn(Arrays.asList(item, zombie));
+            UltiCleanerTestHelper.addMockWorld(world);
+            when(UltiCleanerTestHelper.getMockServer().getEntity(item.getUniqueId())).thenReturn(item);
+            when(UltiCleanerTestHelper.getMockServer().getEntity(zombie.getUniqueId())).thenReturn(zombie);
+            when(item.isValid()).thenReturn(true);
+            when(zombie.isValid()).thenReturn(true);
+            when(config.getItemIgnoreRecentSeconds()).thenReturn(0);
+            when(config.isItemIgnoreNamed()).thenReturn(false);
+            when(config.isEntityWhitelistNamed()).thenReturn(false);
+            when(config.isEntityWhitelistLeashed()).thenReturn(false);
+            when(config.isEntityWhitelistTamed()).thenReturn(false);
+            initServiceWithConfig(Collections.emptyList(), Arrays.asList("ZOMBIE"), Collections.emptyList());
+        }
+
+        private void runEveryBatchTick(ArgumentCaptor<Consumer<BukkitTask>> captor) {
+            for (Consumer<BukkitTask> tick : captor.getAllValues()) {
+                tick.accept(mock(BukkitTask.class));
+            }
+        }
+
+        @Test
+        @DisplayName("items then entities in the same tick remove both (the /clean all order)")
+        void itemsThenEntitiesRemovesBoth() {
+            worldWithOneItemAndOneZombie();
+            ArgumentCaptor<Consumer<BukkitTask>> captor = captureBatchTickConsumer();
+
+            service.forceCleanItems();
+            service.forceCleanEntities();
+            runEveryBatchTick(captor);
+
+            assertThat(captor.getAllValues()).hasSize(2);
+            verify(item).remove();
+            verify(zombie).remove();
+        }
+
+        @Test
+        @DisplayName("entities then items in the same tick remove both")
+        void entitiesThenItemsRemovesBoth() {
+            worldWithOneItemAndOneZombie();
+            ArgumentCaptor<Consumer<BukkitTask>> captor = captureBatchTickConsumer();
+
+            service.forceCleanEntities();
+            service.forceCleanItems();
+            runEveryBatchTick(captor);
+
+            assertThat(captor.getAllValues()).hasSize(2);
+            verify(item).remove();
+            verify(zombie).remove();
+        }
+
+        @Test
+        @DisplayName("both scheduled countdowns reaching zero in the same second remove both")
+        void scheduledTicksInTheSameSecondRemoveBoth() throws Exception {
+            worldWithOneItemAndOneZombie();
+            ArgumentCaptor<Consumer<BukkitTask>> captor = captureBatchTickConsumer();
+            UltiCleanerTestHelper.setField(service, "itemCountdown", 1);
+            UltiCleanerTestHelper.setField(service, "entityCountdown", 1);
+
+            Method itemTick = CleanerService.class.getDeclaredMethod("tickItemClean");
+            Method entityTick = CleanerService.class.getDeclaredMethod("tickEntityClean");
+            itemTick.setAccessible(true);
+            entityTick.setAccessible(true);
+            itemTick.invoke(service);
+            entityTick.invoke(service);
+            runEveryBatchTick(captor);
+
+            verify(item).remove();
+            verify(zombie).remove();
+        }
+
+        private boolean flag(String accessor) throws Exception {
+            // Read through reflection so this class still compiles against the single-flag service
+            // the fix replaces: without the fix these accessors do not exist and the test errors.
+            return (Boolean) CleanerService.class.getMethod(accessor).invoke(service);
+        }
+
+        @Test
+        @DisplayName("a running item batch does not stop an entity batch, and each flag clears when its own batch ends")
+        void flagsAreIndependent() throws Exception {
+            worldWithOneItemAndOneZombie();
+            ArgumentCaptor<Consumer<BukkitTask>> captor = captureBatchTickConsumer();
+
+            service.forceCleanItems();
+            assertThat(flag("isItemCleaningInProgress")).isTrue();
+            assertThat(flag("isEntityCleaningInProgress")).isFalse();
+            assertThat(service.isCleaningInProgress()).isTrue();
+
+            service.forceCleanEntities();
+            assertThat(flag("isEntityCleaningInProgress")).isTrue();
+
+            captor.getAllValues().get(0).accept(mock(BukkitTask.class));
+            assertThat(flag("isItemCleaningInProgress")).isFalse();
+            assertThat(flag("isEntityCleaningInProgress")).isTrue();
+            assertThat(service.isCleaningInProgress()).isTrue();
+
+            captor.getAllValues().get(1).accept(mock(BukkitTask.class));
+            assertThat(flag("isEntityCleaningInProgress")).isFalse();
+            assertThat(service.isCleaningInProgress()).isFalse();
+        }
+    }
 }
