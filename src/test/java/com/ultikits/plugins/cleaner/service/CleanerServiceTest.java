@@ -2482,4 +2482,65 @@ class CleanerServiceTest {
                     "§e[Clean] Items will be cleaned in 1 seconds");
         }
     }
+
+
+    // ==================== UltiKits/UltiCleaner#26 ====================
+
+    @Nested
+    @DisplayName("shutdown stops an in-flight batch (UltiKits/UltiCleaner#26)")
+    class ShutdownStopsBatches {
+
+        private Item first;
+        private Item second;
+
+        @BeforeEach
+        void twoItemsOneAtATime() {
+            World world = UltiCleanerTestHelper.createMockWorld("world");
+            first = createMockItem(world, "STONE", false, 1000);
+            second = createMockItem(world, "DIRT", false, 1000);
+            when(world.getEntities()).thenReturn(Arrays.asList(first, second));
+            UltiCleanerTestHelper.addMockWorld(world);
+            for (Item item : Arrays.asList(first, second)) {
+                when(UltiCleanerTestHelper.getMockServer().getEntity(item.getUniqueId())).thenReturn(item);
+                when(item.isValid()).thenReturn(true);
+            }
+            when(config.getItemIgnoreRecentSeconds()).thenReturn(0);
+            when(config.isItemIgnoreNamed()).thenReturn(false);
+            when(config.getCleanBatchSize()).thenReturn(1);
+            initServiceWithEmptyConfig();
+        }
+
+        @Test
+        @DisplayName("a batch already ticking is cancelled and removes nothing more")
+        void cancelsARunningBatch() {
+            ArgumentCaptor<Consumer<BukkitTask>> ticks = captureBatchTickConsumer();
+            BukkitTask task = mock(BukkitTask.class);
+            service.forceCleanItems();
+            ticks.getValue().accept(task);
+            verify(first).remove();
+
+            service.shutdown();
+
+            verify(task).cancel();
+            ticks.getValue().accept(task);
+            verify(second, never()).remove();
+            assertThat(service.isCleaningInProgress()).isFalse();
+        }
+
+        @Test
+        @DisplayName("a batch scheduled but not yet ticked cancels itself on its first tick")
+        void cancelsABatchBeforeItsFirstTick() {
+            ArgumentCaptor<Consumer<BukkitTask>> ticks = captureBatchTickConsumer();
+            BukkitTask task = mock(BukkitTask.class);
+            service.forceCleanItems();
+
+            service.shutdown();
+            ticks.getValue().accept(task);
+
+            verify(task).cancel();
+            verify(first, never()).remove();
+            verify(second, never()).remove();
+            assertThat(service.isCleaningInProgress()).isFalse();
+        }
+    }
 }
