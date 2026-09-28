@@ -2543,4 +2543,44 @@ class CleanerServiceTest {
             assertThat(service.isCleaningInProgress()).isFalse();
         }
     }
+
+    // ==================== operator values the module cannot use: item.whitelist ====================
+
+    @Nested
+    @DisplayName("item.whitelist entries are resolved as materials, and an unknown one is named")
+    class WhitelistMaterials {
+
+        @Test
+        @DisplayName("an entry that is no material is warned about, naming the key and the entry as written")
+        void unknownMaterialIsNamed() {
+            initServiceWithConfig(Arrays.asList("DIAMOMD", "EMERALD"), Collections.emptyList(), Collections.emptyList());
+
+            ArgumentCaptor<String> warned = ArgumentCaptor.forClass(String.class);
+            verify(UltiCleanerTestHelper.getMockLogger(), atLeastOnce()).warn(warned.capture());
+            assertThat(warned.getAllValues()).anySatisfy(line ->
+                    assertThat(line).contains("item.whitelist").contains("DIAMOMD"));
+            assertThat(warned.getAllValues()).noneSatisfy(line -> assertThat(line).contains("EMERALD"));
+        }
+
+        @Test
+        @DisplayName("a lower-case material name protects that material, as the server's own material lookup reads it")
+        void lowerCaseEntryProtects() throws Exception {
+            World world = UltiCleanerTestHelper.createMockWorld("world");
+            Item diamond = createMockItem(world, "DIAMOND", false, 1000);
+            Item stone = createMockItem(world, "STONE", false, 1000);
+            when(world.getEntities()).thenReturn(Arrays.asList(diamond, stone));
+            UltiCleanerTestHelper.addMockWorld(world);
+            when(config.getItemIgnoreRecentSeconds()).thenReturn(0);
+            when(config.isItemIgnoreNamed()).thenReturn(false);
+            initServiceWithConfig(Arrays.asList("diamond"), Collections.emptyList(), Collections.emptyList());
+
+            Method collect = CleanerService.class.getDeclaredMethod("collectItemsToClean");
+            collect.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            List<UUID> collected = (List<UUID>) collect.invoke(service);
+
+            assertThat(collected).containsExactly(stone.getUniqueId());
+            verify(UltiCleanerTestHelper.getMockLogger(), never()).warn(anyString());
+        }
+    }
 }
