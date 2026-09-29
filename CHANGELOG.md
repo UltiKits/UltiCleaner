@@ -43,6 +43,57 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- `item.whitelist` entries are now read the way the server reads a material name, so a lower-case
+  entry such as `diamond` protects diamonds. An entry that names no material (for example a typo) is
+  ignored and named in a console warning at start-up and on `/ul reload`; before, it was accepted
+  silently and protected nothing.
+- `item.whitelist` 中的条目现在按服务器解析材料名的方式读取，因此 `diamond` 这样的小写条目也能保护钻石。不是材料名的
+  条目（例如拼写错误）会被忽略，并在启动和 `/ul reload` 时于控制台警告中点名；此前它会被静默接受，却不保护任何物品。
+
+- `/upm uninstall UltiCleaner` now stops a cleanup that is still removing items or entities. The
+  batch task belonged to the UltiTools plugin, so it kept deleting entities for a module that had
+  already been unloaded until it reached the end of its list. A cleanup stopped this way broadcasts
+  nothing (UltiKits/UltiCleaner#26).
+- `/upm uninstall UltiCleaner` 现在会停止仍在移除物品或实体的清理。此前分批任务属于 UltiTools 插件，模块卸载后它仍会
+  继续删除实体，直到处理完整个列表。以这种方式停止的清理不会发出任何广播（UltiKits/UltiCleaner#26）。
+
+- Countdown warnings before a scheduled cleanup ("Ground items will be cleaned in T seconds!" and the
+  entity line) are broadcast again. The framework reads each `item.warn-times` / `entity.warn-times`
+  entry from `config/cleaner.yml` as text, and the module compared it with a number, so no warning was
+  ever sent once the file existed. Each entry is now read as a whole number of seconds. A list with an
+  entry that is not a whole number (for example `2.5`) is not used: the default
+  `[60, 30, 10, 5, 3, 2, 1]` applies, and start-up and `/ul reload` log a warning naming the key, the
+  list as written and the default (UltiKits/UltiCleaner#22).
+- 定时清理前的倒计时警告（「地面物品将在 T 秒后清理！」及实体那一行）恢复广播。框架把 `config/cleaner.yml` 中
+  `item.warn-times` / `entity.warn-times` 的每一项读成文本，而模块拿它与数字比较，所以文件存在后从未发出过任何警告。
+  现在每一项都按整数秒读取。若列表中有不是整数的项（例如 `2.5`），该列表不予采用，改用默认值
+  `[60, 30, 10, 5, 3, 2, 1]`，并在启动和 `/ul reload` 时记一条警告，写明键名、列表原值与默认值（UltiKits/UltiCleaner#22）。
+
+- The warning about a key this version no longer reads now prints the configuration file's path exactly
+  as it is. A path containing `{KEY}` or `{REASON}` was rewritten by the placeholders filled after it.
+- 关于本版本已不再读取的配置键的警告，现在会原样打印配置文件路径。此前路径中若含有 `{KEY}` 或 `{REASON}`，
+  会被随后填入的占位符改写。
+
+- For plugin authors: `/clean all` now fires one `CleanCompleteEvent` of type `ALL` after both of its
+  halves have finished, with the combined count and trigger `MANUAL`. Each half still fires its own
+  `ITEMS` or `ENTITIES` event first, as before. `CleanType.ALL` was declared but never fired
+  (UltiKits/UltiCleaner#16).
+- 面向插件作者：`/clean all` 现在会在两半都完成后触发一次类型为 `ALL` 的 `CleanCompleteEvent`，计数为两者之和、
+  触发方式为 `MANUAL`。两半仍会像以前一样各自先触发自己的 `ITEMS` 或 `ENTITIES` 事件。`CleanType.ALL` 此前只声明、
+  从未被触发（UltiKits/UltiCleaner#16）。
+
+- `/clean all` now removes entities as well as ground items. The item cleanup and the entity cleanup
+  shared one "cleaning in progress" flag, so an entity cleanup started in the same tick as an item
+  cleanup was skipped without a message while `/clean all` still reported the entities as started.
+  The same collision dropped the mob cleanup when smart cleanup exceeded both thresholds at once, and
+  dropped one of the two scheduled cleanups whenever their countdowns reached zero in the same second.
+  Each cleanup now has its own flag; `/clean items`, `/clean entities` and `/clean all` still refuse
+  while any cleanup is running (UltiKits/UltiCleaner#15).
+- `/clean all` 现在会同时清理实体和地面物品。此前物品清理与实体清理共用同一个「清理进行中」标记，与物品清理
+  在同一 tick 开始的实体清理会被静默跳过，而 `/clean all` 仍报告这些实体已开始清理。同一冲突也会让智能清理在
+  两个阈值同时超出时漏掉生物清理，并在两个定时倒计时同一秒归零时漏掉其中一个。现在两种清理各有自己的标记；
+  任一清理进行中时，`/clean items`、`/clean entities` 与 `/clean all` 仍会拒绝执行（UltiKits/UltiCleaner#15）。
+
 - `language: en` now applies to everything `/clean` prints (the started, in-progress, `check`,
   `status` and help lines) and to the command description, which were fixed Chinese text in every
   language although the language files already held English text for most of them
@@ -79,6 +130,19 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   模块并未在使用的数字（UltiKits/UltiCleaner#21）。
 
 ### Removed
+
+- Removed the `clear` alias of `/clean`. It took over vanilla's `/clear` command, so `/clear <player>`
+  printed this module's help instead of clearing an inventory. `/clear` is vanilla's again; use
+  `/clean` or `/cleaner` for this module (UltiKits/UltiCleaner#30).
+- 删除了 `/clean` 的别名 `clear`。它接管了原版的 `/clear` 命令，导致 `/clear <玩家>` 只显示本模块的帮助、不会清空背包。
+  现在 `/clear` 重新归原版所有；本模块请使用 `/clean` 或 `/cleaner`（UltiKits/UltiCleaner#30）。
+
+- For plugin authors: removed `CleanCompleteEvent.CleanType.CHUNKS`. Nothing could fire it once the
+  chunk-unload feature was removed, so a listener's `CHUNKS` branch could never run. A plugin that
+  names the constant must drop that branch before it compiles against this version
+  (UltiKits/UltiCleaner#16).
+- 面向插件作者：删除了 `CleanCompleteEvent.CleanType.CHUNKS`。区块卸载功能删除后已没有任何代码能触发它，监听器里的
+  `CHUNKS` 分支永远不会执行。引用了这个常量的插件需删掉该分支，才能基于本版本编译（UltiKits/UltiCleaner#16）。
 
 - Five language-file entries that no code ever displayed were removed from `lang/en.yml` and
   `lang/zh.yml`: `smart_clean_items`, `smart_clean_mobs`, `clean_complete`, `tps_low_warning` and

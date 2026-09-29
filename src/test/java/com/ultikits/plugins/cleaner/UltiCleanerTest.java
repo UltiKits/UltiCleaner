@@ -51,15 +51,36 @@ class UltiCleanerTest {
     }
 
     @Test
-    @DisplayName("UltiCleaner declares no unload hook (UltiKits/UltiCleaner#14)")
-    void noUnloadHook() {
-        // unregisterSelf()/reloadSelf() need no check here: they are final in UltiToolsPlugin,
-        // so the compiler already rejects any override of them.
-        for (java.lang.reflect.Method method : UltiCleaner.class.getDeclaredMethods()) {
-            assertThat(method.getName())
-                    .as("UltiCleaner must not declare %s", method)
-                    .isNotEqualTo("onUnregister");
-        }
+    @DisplayName("onUnregister shuts the cleaner service down, stopping an in-flight batch (UltiKits/UltiCleaner#26)")
+    void onUnregisterShutsDownCleanerService() throws Exception {
+        // Reached reflectively: the hook is protected, and without the fix UltiCleaner does not
+        // declare it, so this test errors instead of failing to compile.
+        java.lang.reflect.Method onUnregister = UltiCleaner.class.getDeclaredMethod("onUnregister");
+        onUnregister.setAccessible(true);
+        UltiCleaner plugin = mock(UltiCleaner.class);
+        SimpleContainer mockContext = mock(SimpleContainer.class);
+        CleanerService mockCleanerService = mock(CleanerService.class);
+        when(plugin.getContext()).thenReturn(mockContext);
+        when(mockContext.getBean(CleanerService.class)).thenReturn(mockCleanerService);
+        onUnregister.invoke(doCallRealMethod().when(plugin));
+
+        onUnregister.invoke(plugin);
+
+        verify(mockCleanerService).shutdown();
+    }
+
+    @Test
+    @DisplayName("onUnregister tolerates a missing CleanerService bean (UltiKits/UltiCleaner#26)")
+    void onUnregisterNullService() throws Exception {
+        java.lang.reflect.Method onUnregister = UltiCleaner.class.getDeclaredMethod("onUnregister");
+        onUnregister.setAccessible(true);
+        UltiCleaner plugin = mock(UltiCleaner.class);
+        SimpleContainer mockContext = mock(SimpleContainer.class);
+        when(plugin.getContext()).thenReturn(mockContext);
+        when(mockContext.getBean(CleanerService.class)).thenReturn(null);
+        onUnregister.invoke(doCallRealMethod().when(plugin));
+
+        assertThatCode(() -> onUnregister.invoke(plugin)).doesNotThrowAnyException();
     }
 
     @Test

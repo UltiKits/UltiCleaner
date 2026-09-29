@@ -77,15 +77,12 @@ class CleanCompleteEventTest {
     class EnumValues {
 
         @Test
-        @DisplayName("CleanType should have all values")
+        @DisplayName("CleanType declares exactly the three types this module fires (UltiKits/UltiCleaner#16)")
         void cleanTypeValues() {
-            assertThat(CleanCompleteEvent.CleanType.values())
-                .containsExactly(
-                    CleanCompleteEvent.CleanType.ITEMS,
-                    CleanCompleteEvent.CleanType.ENTITIES,
-                    CleanCompleteEvent.CleanType.CHUNKS,
-                    CleanCompleteEvent.CleanType.ALL
-                );
+            // Named, not referenced: CHUNKS is removed, so a constant reference could not compile
+            // against the build the revert proof restores, and would prove nothing afterwards.
+            assertThat(java.util.Arrays.stream(CleanCompleteEvent.CleanType.values()).map(Enum::name))
+                .containsExactly("ITEMS", "ENTITIES", "ALL");
         }
 
         @Test

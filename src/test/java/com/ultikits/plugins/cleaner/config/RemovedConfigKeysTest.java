@@ -201,4 +201,25 @@ class RemovedConfigKeysTest {
         }
 
     }
+
+    @Nested
+    @DisplayName("each placeholder is filled once")
+    class FilledInOnePass {
+
+        @Test
+        @DisplayName("a file path containing {KEY} and {REASON} is printed exactly as it is")
+        void pathIsNotExpandedAgain(@TempDir File tmp) throws IOException {
+            File dir = new File(tmp, "srv-{KEY}-{REASON}");
+            assertThat(dir.mkdirs()).isTrue();
+            File file = write(dir, "cleaner.yml",
+                    "messages:\n  prefix: '&a[Cleaner]'\n");
+
+            CleanerSeams.warnAboutLeftovers(file, warnings::add, ENGLISH);
+
+            assertThat(warnings).hasSize(1);
+            assertThat(warnings.get(0))
+                    .contains(file.getPath())
+                    .contains("'messages.prefix'");
+        }
+    }
 }

@@ -1,6 +1,8 @@
 package com.ultikits.plugins.cleaner.config;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -27,6 +29,14 @@ import lombok.Setter;
 @Setter
 @ConfigEntity("config/cleaner.yml")
 public class CleanerConfig extends AbstractConfigEntity {
+
+    /**
+     * Default of both {@code item.warn-times} and {@code entity.warn-times}, and the list used in
+     * place of one that holds an entry that is not a whole number of seconds
+     * (UltiKits/UltiCleaner#22).
+     */
+    public static final List<Integer> DEFAULT_WARN_TIMES =
+            Collections.unmodifiableList(Arrays.asList(60, 30, 10, 5, 3, 2, 1));
     
     // ============ Item Cleanup ============
     @ConfigEntry(path = "item.enabled", comment = "启用物品清理")
@@ -38,7 +48,7 @@ public class CleanerConfig extends AbstractConfigEntity {
 
     @NotEmpty
     @ConfigEntry(path = "item.warn-times", comment = "清理前警告时间点（秒）")
-    private List<Integer> itemWarnTimes = Arrays.asList(60, 30, 10, 5, 3, 2, 1);
+    private List<Integer> itemWarnTimes = new ArrayList<>(DEFAULT_WARN_TIMES);
 
     @ConfigEntry(path = "item.whitelist", comment = "物品白名单（不会被清理的物品）")
     private List<String> itemWhitelist = Arrays.asList(
@@ -66,7 +76,7 @@ public class CleanerConfig extends AbstractConfigEntity {
 
     @NotEmpty
     @ConfigEntry(path = "entity.warn-times", comment = "实体清理前警告时间点（秒）")
-    private List<Integer> entityWarnTimes = Arrays.asList(60, 30, 10, 5, 3, 2, 1);
+    private List<Integer> entityWarnTimes = new ArrayList<>(DEFAULT_WARN_TIMES);
 
     @NotEmpty
     @ConfigEntry(path = "entity.types", comment = "要清理的实体类型")

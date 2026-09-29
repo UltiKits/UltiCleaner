@@ -21,7 +21,8 @@ import java.util.Map;
  * @version 2.0.0
  */
 @CmdExecutor(
-    alias = {"clean", "cleaner", "clear"},
+    // No "clear": that is vanilla's inventory-clear command, which the alias took over (UltiKits/UltiCleaner#30)
+    alias = {"clean", "cleaner"},
     permission = "ulticleaner.clean",
     description = "command_description"
 )
@@ -68,11 +69,10 @@ public class CleanCommand extends BaseCommandExecutor {
             sender.sendMessage(color(plugin.i18n("clean_in_progress")));
             return;
         }
-        int itemCount = cleanerService.forceCleanItems();
-        int entityCount = cleanerService.forceCleanEntities();
+        int[] counts = cleanerService.forceCleanAll();
         sender.sendMessage(color(plugin.i18n("clean_started_all")
-                .replace("{ITEMS}", String.valueOf(itemCount))
-                .replace("{ENTITIES}", String.valueOf(entityCount))));
+                .replace("{ITEMS}", String.valueOf(counts[0]))
+                .replace("{ENTITIES}", String.valueOf(counts[1]))));
     }
     
     @CmdMapping(format = "check")

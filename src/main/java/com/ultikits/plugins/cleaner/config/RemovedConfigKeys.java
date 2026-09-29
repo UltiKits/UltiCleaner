@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import com.ultikits.plugins.cleaner.utils.Placeholders;
 import com.ultikits.ultitools.abstracts.UltiToolsPlugin;
 
 import org.bukkit.configuration.InvalidConfigurationException;
@@ -102,10 +103,10 @@ public final class RemovedConfigKeys {
         for (Map.Entry<String, String> entry : REMOVED.entrySet()) {
             if (yaml.contains(entry.getKey())) {
                 String reason = reasonFor(entry.getKey(), plugin);
-                warn.accept(plugin.i18n("removed_key_warning")
-                        .replace("{FILE}", configFile.getPath())
-                        .replace("{KEY}", entry.getKey())
-                        .replace("{REASON}", reason));
+                warn.accept(Placeholders.fill(plugin.i18n("removed_key_warning"),
+                        "{FILE}", configFile.getPath(),
+                        "{KEY}", entry.getKey(),
+                        "{REASON}", reason));
             }
         }
     }

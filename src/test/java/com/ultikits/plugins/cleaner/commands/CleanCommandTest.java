@@ -114,27 +114,36 @@ class CleanCommandTest {
     @DisplayName("cleanAll")
     class CleanAll {
 
+        // forceCleanAll() is reached reflectively so this class compiles against the service
+        // before it existed; without it these tests error (UltiKits/UltiCleaner#16).
+        private java.lang.reflect.Method forceCleanAll() throws Exception {
+            return CleanerService.class.getMethod("forceCleanAll");
+        }
+
         @Test
-        @DisplayName("Should clean both items and entities")
-        void cleanAll() {
+        @DisplayName("Should clean both items and entities through one combined run, reporting both counts (UltiKits/UltiCleaner#16)")
+        void cleanAll() throws Exception {
             when(cleanerService.isCleaningInProgress()).thenReturn(false);
-            when(cleanerService.forceCleanItems()).thenReturn(100);
-            when(cleanerService.forceCleanEntities()).thenReturn(50);
+            when(forceCleanAll().invoke(cleanerService)).thenReturn(new int[] {100, 50});
 
             command.cleanAll(sender);
 
-            verify(cleanerService).forceCleanItems();
-            verify(cleanerService).forceCleanEntities();
-            verify(sender).sendMessage(anyString());
+            forceCleanAll().invoke(verify(cleanerService));
+            verify(cleanerService, never()).forceCleanItems();
+            verify(cleanerService, never()).forceCleanEntities();
+            org.mockito.ArgumentCaptor<String> line = org.mockito.ArgumentCaptor.forClass(String.class);
+            verify(sender).sendMessage(line.capture());
+            assertThat(line.getValue()).contains("100").contains("50");
         }
 
         @Test
         @DisplayName("Should show message when cleaning in progress")
-        void cleaningInProgress() {
+        void cleaningInProgress() throws Exception {
             when(cleanerService.isCleaningInProgress()).thenReturn(true);
 
             command.cleanAll(sender);
 
+            forceCleanAll().invoke(verify(cleanerService, never()));
             verify(cleanerService, never()).forceCleanItems();
             verify(cleanerService, never()).forceCleanEntities();
         }
@@ -395,6 +404,23 @@ class CleanCommandTest {
 
             // Should display header + items + mobs + total
             verify(sender, atLeast(4)).sendMessage(anyString());
+        }
+    }
+
+    // ==================== aliases ====================
+
+    @Nested
+    @DisplayName("aliases (UltiKits/UltiCleaner#30)")
+    class Aliases {
+
+        @Test
+        @DisplayName("/clean answers to clean and cleaner only, never to the vanilla clear command")
+        void noVanillaLabel() {
+            String[] aliases = CleanCommand.class
+                    .getAnnotation(com.ultikits.ultitools.annotations.command.CmdExecutor.class).alias();
+
+            assertThat(aliases).containsExactly("clean", "cleaner");
+            assertThat(aliases).doesNotContain("clear");
         }
     }
 }

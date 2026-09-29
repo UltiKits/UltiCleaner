@@ -146,10 +146,14 @@ public class CleanerListener implements Listener {
 | `PreEntityCleanEvent` | 实体清理前 | ✅ |
 | `CleanCompleteEvent` | 清理完成后 | ❌ |
 
-> **注意** `CleanCompleteEvent.CleanType` 的四个常量中有两个从不会被构造，为它们写的 `switch` 分支永远不会执行：
-> `CHUNKS`（区块卸载功能已整体移除，见 `UltiKits/UltiCleaner#27`，因此它已不可能再被构造）与
-> `ALL`（`/clean all` 会先后触发 `ITEMS` 与 `ENTITIES` 两个事件，不会构造 `ALL`）。
-> 两者由 `UltiKits/UltiCleaner#16` 跟踪。
+> **Note** `CleanCompleteEvent.CleanType` has three constants: `ITEMS`, `ENTITIES` and `ALL`. `ALL` is fired
+> once per `/clean all`, after both halves have finished (each half first fires its own `ITEMS` or `ENTITIES`
+> event), with the combined count. The former `CHUNKS` constant was removed with the chunk-unload feature
+> (`UltiKits/UltiCleaner#16`, `UltiKits/UltiCleaner#27`).
+>
+> **注意** `CleanCompleteEvent.CleanType` 共三个常量：`ITEMS`、`ENTITIES`、`ALL`。`ALL` 在每次 `/clean all`
+> 的两半都完成后触发一次（两半各自先触发自己的 `ITEMS` 或 `ENTITIES` 事件），计数为两者之和。原来的 `CHUNKS`
+> 常量已随区块卸载功能一并删除（`UltiKits/UltiCleaner#16`、`UltiKits/UltiCleaner#27`）。
 
 ## 🆚 与旧版对比
 
