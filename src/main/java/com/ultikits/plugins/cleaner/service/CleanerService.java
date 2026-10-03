@@ -143,6 +143,10 @@ public class CleanerService {
             worldBlacklistCache.addAll(config.getWorldBlacklist());
         }
         
+        // A list with nothing usable in it would silently switch every countdown warning off
+        warnIfEmpty("item.warn-times", config.getItemWarnTimes());
+        warnIfEmpty("entity.warn-times", config.getEntityWarnTimes());
+
         // Initialize countdowns
         itemCountdown = config.getItemCleanInterval();
         entityCountdown = config.getEntityCleanInterval();
@@ -153,15 +157,28 @@ public class CleanerService {
      * <p>
      * The framework binds each element of the list as the declared {@code Integer}, including numbers a 6.2
      * file stored as text, and skips an element it cannot bind with a located warning, so the list holds
-     * only whole seconds. It is read from the config on every tick, so a change applies without waiting for
-     * a reload.
+     * only whole seconds. A list that bound to nothing (empty in the file, or every element skipped) is
+     * not used: the declared default list applies instead and {@link #loadCaches()} names it at enable and
+     * reload (UltiKits/UltiCleaner#34). The list is read from the config on every tick, so a change applies
+     * without waiting for a reload.
      *
      * @param configured the list as bound from the file; {@code null} means no warnings
      * @param seconds    the seconds left on the countdown
      * @return whether to warn at this second
      */
     private static boolean isWarnMark(List<Integer> configured, int seconds) {
-        return configured != null && configured.contains(seconds);
+        if (configured == null) {
+            return false;
+        }
+        return (configured.isEmpty() ? CleanerConfig.DEFAULT_WARN_TIMES : configured).contains(seconds);
+    }
+
+    private void warnIfEmpty(String key, List<Integer> configured) {
+        if (configured != null && configured.isEmpty()) {
+            plugin.getLogger().warn(Placeholders.fill(plugin.i18n("log_empty_warn_times"),
+                    "{KEY}", key,
+                    "{DEFAULT}", String.valueOf(CleanerConfig.DEFAULT_WARN_TIMES)));
+        }
     }
 
     /**

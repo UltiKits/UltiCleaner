@@ -33,7 +33,9 @@ public class CleanerConfig extends AbstractConfigEntity {
     /**
      * Default of both {@code item.warn-times} and {@code entity.warn-times}. The framework binds each
      * list element as an {@code Integer} and skips one that is not a whole number with a located
-     * warning, so a file's list is used as far as it binds (UltiKits/UltiCleaner#22).
+     * warning, so a file's list is used as far as it binds (UltiKits/UltiCleaner#22); a list that binds
+     * to nothing is replaced by this default, with a warning from the service (UltiKits/UltiCleaner#34).
+     * These two fields carry no {@code @NotEmpty}: the framework applies it to text only.
      */
     public static final List<Integer> DEFAULT_WARN_TIMES =
             Collections.unmodifiableList(Arrays.asList(60, 30, 10, 5, 3, 2, 1));
@@ -46,7 +48,6 @@ public class CleanerConfig extends AbstractConfigEntity {
     @ConfigEntry(path = "item.interval", comment = "{cleaner_config_comment_item_interval}")
     private int itemCleanInterval = 300;
 
-    @NotEmpty
     @ConfigEntry(path = "item.warn-times", comment = "{cleaner_config_comment_item_warn_times}")
     private List<Integer> itemWarnTimes = new ArrayList<>(DEFAULT_WARN_TIMES);
 
@@ -74,7 +75,6 @@ public class CleanerConfig extends AbstractConfigEntity {
     @ConfigEntry(path = "entity.interval", comment = "{cleaner_config_comment_entity_interval}")
     private int entityCleanInterval = 600;
 
-    @NotEmpty
     @ConfigEntry(path = "entity.warn-times", comment = "{cleaner_config_comment_entity_warn_times}")
     private List<Integer> entityWarnTimes = new ArrayList<>(DEFAULT_WARN_TIMES);
 
