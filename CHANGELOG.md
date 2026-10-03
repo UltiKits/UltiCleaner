@@ -43,6 +43,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- The comments above the keys of `config/cleaner.yml` now come from the module's language files: a
+  server set to `language: en` writes English comments on a fresh install (earlier versions wrote
+  Chinese-only comments in every language). An existing file's comments on these 33 keys switch to the
+  server's language at the next start; values are untouched, and a comment you wrote by hand above one
+  of these keys is replaced (UltiKits/UltiCleaner#33).
+- `config/cleaner.yml` 中各配置项上方的注释现在取自模块的语言文件：`language: en` 的服务器全新安装时写入英文注释
+  （此前所有语言下都写入纯中文注释）。已有文件中这 33 项的注释会在下次启动时切换为服务器语言；配置值不变，
+  你手写在这些配置项上方的注释会被替换（UltiKits/UltiCleaner#33）。
 - `item.whitelist` entries are now read the way the server reads a material name, so a lower-case
   entry such as `diamond` protects diamonds. An entry that names no material (for example a typo) is
   ignored and named in a console warning at start-up and on `/ul reload`; before, it was accepted

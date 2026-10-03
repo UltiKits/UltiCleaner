@@ -221,8 +221,9 @@ the framework's language catalogue (`lang/en.yml`, `lang/zh.yml`), so it follows
 `config/cleaner.yml` in that language while they are still built-in text (see the Conventions note). Two JUnit guards
 (`UltiCleanerLanguageCatalogueTest`, `UltiCleanerCjkLiteralScopeTest`) fail the build when a key is
 missing from either catalogue, a catalogue key is read by nothing, or Chinese text appears outside
-one.
+one. The comment above every key of `config/cleaner.yml` is a catalogue key too (`ulticleaner.i18n.config-comments`).
 
 | ID | Feature | Kind | How to reach | Permission | Target | Tier | Manual | Source |
 |---|---|---|---|---|---|---|---|---|
+| ulticleaner.i18n.config-comments | The comment written above each of the 33 keys of `config/cleaner.yml` comes from the module's language files and follows the server's `language`: each `@ConfigEntry(comment = "{key}")` is a single catalogue-key token (`cleaner_config_comment_<path with . and - as _>`, for example `cleaner_config_comment_item_warn_times`), whose `lang/en.yml` entry is the English comment and whose `lang/zh.yml` entry is the Chinese one. A fresh install under `language: en` therefore writes English comments (earlier versions wrote Chinese-only comments in every language), and the framework rewrites the comment lines of these keys in the server's current language whenever it writes the file, an upgraded server's first start included; values are untouched, and a comment an operator wrote by hand above one of these keys is replaced. A new Chinese-only `@ConfigEntry` comment fails the module's language guard 2 (`UltiKits/UltiCleaner#33`) | config | `config/cleaner.yml` — the comment above each key | n/a | both | admin | none | `lang/en.yml`, `lang/zh.yml`, `CleanerConfig` |
 | ulticleaner.i18n.language | All of this module's chat, command-description and console text in the server's language: `lang/en.yml` under `language: en`, `lang/zh.yml` under `language: zh` | config | framework `config.yml: language` | n/a | both | admin | none | `lang/en.yml`, `lang/zh.yml`, every `i18n(...)` call |
