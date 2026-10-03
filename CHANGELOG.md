@@ -68,14 +68,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Countdown warnings before a scheduled cleanup ("Ground items will be cleaned in T seconds!" and the
   entity line) are broadcast again. The framework reads each `item.warn-times` / `entity.warn-times`
   entry from `config/cleaner.yml` as text, and the module compared it with a number, so no warning was
-  ever sent once the file existed. Each entry is now read as a whole number of seconds. A list with an
-  entry that is not a whole number (for example `2.5`) is not used: the default
-  `[60, 30, 10, 5, 3, 2, 1]` applies, and start-up and `/ul reload` log a warning naming the key, the
-  list as written and the default (UltiKits/UltiCleaner#22).
+  ever sent once the file existed. Each entry is now read as a whole number of seconds, including a number
+  an older file stored as text. An entry that cannot be read as one (for example `abc` or `2.5`) is skipped
+  with a console warning naming the key, the entry's position and its value, and the other entries are used
+  (UltiKits/UltiCleaner#22).
 - 定时清理前的倒计时警告（「地面物品将在 T 秒后清理！」及实体那一行）恢复广播。框架把 `config/cleaner.yml` 中
   `item.warn-times` / `entity.warn-times` 的每一项读成文本，而模块拿它与数字比较，所以文件存在后从未发出过任何警告。
-  现在每一项都按整数秒读取。若列表中有不是整数的项（例如 `2.5`），该列表不予采用，改用默认值
-  `[60, 30, 10, 5, 3, 2, 1]`，并在启动和 `/ul reload` 时记一条警告，写明键名、列表原值与默认值（UltiKits/UltiCleaner#22）。
+  现在每一项都按整数秒读取，旧文件中以文本形式保存的数字也一样。读不成整数的项（例如 `abc` 或 `2.5`）会被跳过，
+  并在控制台记一条警告，写明键名、该项的位置与原值，其余项照常使用（UltiKits/UltiCleaner#22）。
 
 - The warning about a key this version no longer reads now prints the configuration file's path exactly
   as it is. A path containing `{KEY}` or `{REASON}` was rewritten by the placeholders filled after it.

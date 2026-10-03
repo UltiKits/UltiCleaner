@@ -31,9 +31,9 @@ import lombok.Setter;
 public class CleanerConfig extends AbstractConfigEntity {
 
     /**
-     * Default of both {@code item.warn-times} and {@code entity.warn-times}, and the list used in
-     * place of one that holds an entry that is not a whole number of seconds
-     * (UltiKits/UltiCleaner#22).
+     * Default of both {@code item.warn-times} and {@code entity.warn-times}. The framework binds each
+     * list element as an {@code Integer} and skips one that is not a whole number with a located
+     * warning, so a file's list is used as far as it binds (UltiKits/UltiCleaner#22).
      */
     public static final List<Integer> DEFAULT_WARN_TIMES =
             Collections.unmodifiableList(Arrays.asList(60, 30, 10, 5, 3, 2, 1));

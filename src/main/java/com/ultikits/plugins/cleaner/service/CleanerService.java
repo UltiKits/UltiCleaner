@@ -143,67 +143,28 @@ public class CleanerService {
             worldBlacklistCache.addAll(config.getWorldBlacklist());
         }
         
-        // Tell the operator about a warn-times list the countdown cannot use
-        warnIfNotWholeSeconds("item.warn-times", config.getItemWarnTimes());
-        warnIfNotWholeSeconds("entity.warn-times", config.getEntityWarnTimes());
-
         // Initialize countdowns
         itemCountdown = config.getItemCleanInterval();
         entityCountdown = config.getEntityCleanInterval();
     }
 
     /**
-     * The countdown marks of a {@code warn-times} list, as whole seconds.
+     * Whether {@code seconds} is one of the countdown marks of a {@code warn-times} list.
      * <p>
-     * The framework's config parser binds each element of a list read from the file as its string
-     * form, whatever the field's declared element type, so a {@code contains(int)} lookup never
-     * matched and no countdown warning was ever broadcast (UltiKits/UltiCleaner#22). Each element is
-     * therefore read through its text. A list with an element that is not a whole number is not used:
-     * {@link CleanerConfig#DEFAULT_WARN_TIMES} is used instead, and {@link #loadCaches()} names the
-     * list once at enable and reload. The list is read from the config on every tick, as before, so a
-     * change applies without waiting for a reload.
+     * The framework binds each element of the list as the declared {@code Integer}, including numbers a 6.2
+     * file stored as text, and skips an element it cannot bind with a located warning, so the list holds
+     * only whole seconds. It is read from the config on every tick, so a change applies without waiting for
+     * a reload.
      *
      * @param configured the list as bound from the file; {@code null} means no warnings
-     * @return the marks to warn at
+     * @param seconds    the seconds left on the countdown
+     * @return whether to warn at this second
      */
-    private static Set<Integer> warnSeconds(List<?> configured) {
-        Set<Integer> parsed = parseWholeSeconds(configured);
-        return parsed != null ? parsed : new HashSet<>(CleanerConfig.DEFAULT_WARN_TIMES);
+    private static boolean isWarnMark(List<Integer> configured, int seconds) {
+        return configured != null && configured.contains(seconds);
     }
 
-    /**
-     * @return the elements as whole numbers, an empty set for {@code null}, or {@code null} when any
-     *         element is not a whole number
-     */
-    private static Set<Integer> parseWholeSeconds(List<?> configured) {
-        Set<Integer> seconds = new HashSet<>();
-        if (configured == null) {
-            return seconds;
-        }
-        for (Object element : configured) {
-            if (element == null) {
-                return null;
-            }
-            try {
-                seconds.add(Integer.parseInt(String.valueOf(element).trim()));
-            } catch (NumberFormatException e) {
-                return null;
-            }
-        }
-        return seconds;
-    }
 
-    private void warnIfNotWholeSeconds(String key, List<?> configured) {
-        if (parseWholeSeconds(configured) == null) {
-            // The operator's value goes in with the others in one pass, so it is printed as written
-            plugin.getLogger().warn(Placeholders.fill(plugin.i18n("log_invalid_warn_times"),
-                    "{KEY}", key,
-                    "{VALUE}", String.valueOf(configured),
-                    "{DEFAULT}", String.valueOf(CleanerConfig.DEFAULT_WARN_TIMES)));
-        }
-    }
-    
-    
     /**
      * Check if smart cleanup should be triggered.
      * Runs every 5 seconds (100 ticks).
@@ -274,7 +235,7 @@ public class CleanerService {
         itemCountdown--;
         
         // Check if we need to warn
-        if (warnSeconds(config.getItemWarnTimes()).contains(itemCountdown)) {
+        if (isWarnMark(config.getItemWarnTimes(), itemCountdown)) {
             broadcastWarn(itemCountdown);
         }
         
@@ -297,7 +258,7 @@ public class CleanerService {
         entityCountdown--;
         
         // Check if we need to warn for entities
-        if (warnSeconds(config.getEntityWarnTimes()).contains(entityCountdown)) {
+        if (isWarnMark(config.getEntityWarnTimes(), entityCountdown)) {
             broadcastEntityWarn(entityCountdown);
         }
         
