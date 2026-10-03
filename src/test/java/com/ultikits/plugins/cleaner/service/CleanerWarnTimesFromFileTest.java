@@ -197,7 +197,7 @@ class CleanerWarnTimesFromFileTest {
     }
 
     @Test
-    @DisplayName("control: the capture sees the framework's warning for a bad element and sees none for a clean file")
+    @DisplayName("a clean list produces no framework warning about warn-times")
     void aCleanFileProducesNoFrameworkWarning() throws Exception {
         load("item:\n  interval: 15\n  warn-times: [10, 1]\n");
 
