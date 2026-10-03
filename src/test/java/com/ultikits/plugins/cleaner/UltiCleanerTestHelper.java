@@ -164,6 +164,9 @@ public final class UltiCleanerTestHelper {
         CleanerConfig config = mock(CleanerConfig.class);
         lenient().when(config.isItemCleanEnabled()).thenReturn(true);
         lenient().when(config.getItemCleanInterval()).thenReturn(300);
+        // a mock answers an empty list unless told otherwise, which the service now names and replaces (#34)
+        lenient().when(config.getItemWarnTimes()).thenReturn(CleanerConfig.DEFAULT_WARN_TIMES);
+        lenient().when(config.getEntityWarnTimes()).thenReturn(CleanerConfig.DEFAULT_WARN_TIMES);
         lenient().when(config.isEntityCleanEnabled()).thenReturn(true);
         lenient().when(config.getEntityCleanInterval()).thenReturn(600);
         lenient().when(config.isSmartCleanEnabled()).thenReturn(false);
