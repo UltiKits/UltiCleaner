@@ -164,7 +164,6 @@ public class CleanerService {
         return configured != null && configured.contains(seconds);
     }
 
-
     /**
      * Check if smart cleanup should be triggered.
      * Runs every 5 seconds (100 ticks).
