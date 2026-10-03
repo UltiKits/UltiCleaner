@@ -96,14 +96,14 @@ class CleanerConfigTextTest {
             new Setting("cleanProgressMessage", "messages.clean-progress", "clean_progress", "", "&7[清理] &f清理进度: &e{CURRENT}&f/&e{TOTAL}"),
             new Setting("cleanCancelledMessage", "messages.clean-cancelled", "clean_cancelled", "", "&c[清理] &f清理操作被其他插件取消！"));
 
-    /** The fields that carried {@code @NotEmpty} at origin/master: the 7 above plus four that never changed. */
+    /** The fields that carried {@code @NotEmpty} at origin/master: the 7 above plus two that never changed (the two warn-times lists lost it in #34: the framework applies @NotEmpty to text only). */
     private static final Set<String> NOT_EMPTY_AT_MASTER = new TreeSet<>();
 
     static {
         for (Setting s : SETTINGS) {
             NOT_EMPTY_AT_MASTER.add(s.field);
         }
-        NOT_EMPTY_AT_MASTER.addAll(Arrays.asList("itemWarnTimes", "entityWarnTimes", "entityTypes", "tpsSampleWindow"));
+        NOT_EMPTY_AT_MASTER.addAll(Arrays.asList("entityTypes", "tpsSampleWindow"));
     }
 
     private static final String[] LANGUAGES = {"en", "zh"};

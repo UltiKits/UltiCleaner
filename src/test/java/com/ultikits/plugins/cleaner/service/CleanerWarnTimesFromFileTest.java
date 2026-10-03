@@ -203,4 +203,64 @@ class CleanerWarnTimesFromFileTest {
 
         assertThat(frameworkWarnings).noneMatch(w -> w.contains("warn-times"));
     }
+
+    private List<String> moduleWarnings() {
+        ArgumentCaptor<String> warned = ArgumentCaptor.forClass(String.class);
+        verify(UltiCleanerTestHelper.getMockLogger(), atLeast(0)).warn(warned.capture());
+        return warned.getAllValues();
+    }
+
+    private static final String DEFAULT_LIST = "[60, 30, 10, 5, 3, 2, 1]";
+
+    @Test
+    @DisplayName("an empty item.warn-times is named in one warning and the default list warns instead (#34)")
+    void anEmptyItemListUsesTheDefault() throws Exception {
+        CleanerConfig config = load("item:\n  interval: 70\n  warn-times: []\n");
+        assertThat(config.getItemWarnTimes()).as("the framework binds the empty list").isEmpty();
+
+        CleanerService service = serviceFor(config);
+
+        assertThat(moduleWarnings()).singleElement().satisfies(w ->
+                assertThat(w).contains("item.warn-times").contains(DEFAULT_LIST));
+        assertThat(broadcastsCountingDownFrom(service, "itemCountdown", "tickItemClean", 62))
+                .containsExactly("item 60", "item 30", "item 10", "item 5", "item 3", "item 2", "item 1");
+    }
+
+    @Test
+    @DisplayName("an entity.warn-times in which every entry is unbindable falls back the same way (#34)")
+    void aFullyUnbindableEntityListUsesTheDefault() throws Exception {
+        CleanerConfig config = load("entity:\n  interval: 70\n  warn-times: [abc, 2.5]\n");
+        assertThat(config.getEntityWarnTimes()).isEmpty();
+        assertThat(frameworkWarnings).as("the framework still names each skipped entry").hasSize(2);
+
+        CleanerService service = serviceFor(config);
+
+        assertThat(moduleWarnings()).singleElement().satisfies(w ->
+                assertThat(w).contains("entity.warn-times").contains(DEFAULT_LIST));
+        assertThat(broadcastsCountingDownFrom(service, "entityCountdown", "tickEntityClean", 62))
+                .containsExactly("entity 60", "entity 30", "entity 10", "entity 5", "entity 3", "entity 2", "entity 1");
+    }
+
+    @Test
+    @DisplayName("every reload names an empty list again; a usable list produces no module warning (#34)")
+    void reloadWarnsAgainAndAUsableListIsQuiet() throws Exception {
+        CleanerService empty = serviceFor(load("item:\n  warn-times: []\n"));
+        empty.reload();
+
+        assertThat(moduleWarnings()).hasSize(2).allSatisfy(w -> assertThat(w).contains("item.warn-times"));
+
+        org.mockito.Mockito.clearInvocations(UltiCleanerTestHelper.getMockLogger());
+        serviceFor(load("item:\n  warn-times: [10, 1]\n")).reload();
+
+        assertThat(moduleWarnings()).noneMatch(w -> w.contains("warn-times"));
+    }
+
+    @Test
+    @DisplayName("warn-times no longer claims @NotEmpty, which the framework applies to text only (#34)")
+    void warnTimesCarryNoNotEmpty() throws Exception {
+        for (String field : new String[] {"itemWarnTimes", "entityWarnTimes"}) {
+            assertThat(CleanerConfig.class.getDeclaredField(field)
+                    .isAnnotationPresent(com.ultikits.ultitools.annotations.config.NotEmpty.class)).as(field).isFalse();
+        }
+    }
 }
