@@ -40,7 +40,7 @@ public class UltiCleaner extends UltiToolsPlugin {
         // Tell the operator about keys this version no longer reads but which are still in
         // their own file -- deleting a key from CleanerConfig does nothing to files on disk.
         warnAboutRemovedConfigKeys();
-        writeConfigTextInServerLanguage();
+        writeConfigTextInServerLanguage(false);
 
         // Load configuration caches
         CleanerService cleanerService = getContext().getBean(CleanerService.class);
@@ -61,7 +61,7 @@ public class UltiCleaner extends UltiToolsPlugin {
     @Override
     protected void onReload() {
         warnAboutRemovedConfigKeys();
-        writeConfigTextInServerLanguage();
+        writeConfigTextInServerLanguage(true);
         CleanerService cleanerService = getContext().getBean(CleanerService.class);
         if (cleanerService != null) {
             cleanerService.reload();
@@ -94,10 +94,21 @@ public class UltiCleaner extends UltiToolsPlugin {
      * The text comes from this jar's own catalogue for the server's language, not from {@code i18n} (which
      * reads the operator's extracted language file first), so every value written is one the next pass
      * recognises.
+     * <p>
+     * The comments above the keys are catalogue tokens the framework resolves whenever it writes the file
+     * (UltiKits/UltiCleaner#33). On a reload it re-reads the files before it rebuilds the language, so a
+     * server whose {@code language} changed would keep the old comments whenever no message needed a
+     * rewrite; {@code saveAnyway} makes {@link #onReload()} save once the language is current.
+     *
+     * @param saveAnyway save the file even when no message changed
      */
-    private void writeConfigTextInServerLanguage() {
+    private void writeConfigTextInServerLanguage(boolean saveAnyway) {
         CleanerConfig config = getContext().getBean(CleanerConfig.class);
-        if (config == null || !config.materializeText(ConfigTextDefaults.jarLanguage(CleanerConfig.class, getLanguageCode())::getLocalizedText)) {
+        if (config == null) {
+            return;
+        }
+        boolean changed = config.materializeText(ConfigTextDefaults.jarLanguage(CleanerConfig.class, getLanguageCode())::getLocalizedText);
+        if (!changed && !saveAnyway) {
             return;
         }
         try {
