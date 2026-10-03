@@ -40,7 +40,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * <p>
  * No category is skipped without an exemption line. In particular the value of a {@code @ConfigEntry}
  * annotation's {@code comment} element counts like any other literal: a config comment is written as one
- * {@code {key}} token that the module's catalogues translate (UltiKits/UltiCleaner#32), so a new
+ * {@code {key}} token that the module's catalogues translate (UltiKits/UltiCleaner#33), so a new
  * Chinese-only comment fails this guard.
  * <p>
  * This file is the same in every module except for its package line and class name, and this one
@@ -170,7 +170,7 @@ class UltiCleanerCjkLiteralScopeTest {
     /**
      * Whether guard 2 judges this literal: Chinese text that is not a catalogue key. A {@code @ConfigEntry}
      * comment is judged like every other literal; the skip earlier versions of this guard had for it ended
-     * with the adoption of translatable config comments (UltiKits/UltiCleaner#32).
+     * with the adoption of translatable config comments (UltiKits/UltiCleaner#33).
      */
     static boolean reportable(Literal l) {
         return !l.key && I18nSourceScanner.containsCjk(l.value);
@@ -492,15 +492,15 @@ class UltiCleanerCjkLiteralScopeTest {
         @Test
         @DisplayName("an English comment and a {key} token comment are not reported")
         void englishAndTokenCommentsPass() {
-            assertThat(check("@ConfigEntry(path = \"a.b\", comment = \"Enable the sidebar\") private boolean s;\n"
-                    + "@ConfigEntry(path = \"a.c\", comment = \"{sidebar_config_comment_c}\") private int n;"))
+            assertThat(check("@ConfigEntry(path = \"a.b\", comment = \"Enable the cleaner\") private boolean s;\n"
+                    + "@ConfigEntry(path = \"a.c\", comment = \"{cleaner_config_comment_c}\") private int n;"))
                     .isEmpty();
         }
 
         @Test
         @DisplayName("a comment holding only full-width punctuation is reported")
         void fullWidthPunctuationInACommentIsReported() {
-            assertThat(check("@ConfigEntry(path = \"a\", comment = \"Enable\\uFF0C the sidebar\") private boolean s;"))
+            assertThat(check("@ConfigEntry(path = \"a\", comment = \"Enable\\uFF0C the cleaner\") private boolean s;"))
                     .hasSize(1);
         }
 

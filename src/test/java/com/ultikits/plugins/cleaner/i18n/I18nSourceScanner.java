@@ -120,7 +120,7 @@ final class I18nSourceScanner {
         /**
          * True when the literal is part of the value of a {@code @ConfigEntry} annotation's
          * {@code comment} element -- and of nothing else. Recorded for the guards of modules whose
-         * guard 2 skips these; UltiCleaner's no longer does (UltiKits/UltiCleaner#32), so here it only
+         * guard 2 skips these; UltiCleaner's no longer does (UltiKits/UltiCleaner#33), so here it only
          * says where the literal sits.
          */
         boolean configComment;
@@ -172,7 +172,7 @@ final class I18nSourceScanner {
         /**
          * {@code @ConfigEntry(comment = "{key}")} -- the framework resolves a comment that is one trimmed
          * {@code {key}} token through the module's catalogue ({@code UltiToolsPlugin#i18n}) on every load
-         * and write of the file (UltiKits/UltiCleaner#32).
+         * and write of the file (UltiKits/UltiCleaner#33).
          */
         CONFIG_COMMENT
     }

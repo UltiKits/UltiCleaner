@@ -680,10 +680,10 @@ class UltiCleanerLanguageCatalogueTest {
         @Test
         @DisplayName("a @ConfigEntry comment written as one {key} token is a key site, trimmed the way the framework trims it")
         void configCommentTokenIsAKeySite() {
-            SourceFile f = source("@ConfigEntry(path = \"a\", comment = \"{sidebar_config_comment_a}\") private boolean a;\n"
-                    + "@ConfigEntry(path = \"b\", comment = \" {sidebar_config_comment_b} \") private boolean b;");
+            SourceFile f = source("@ConfigEntry(path = \"a\", comment = \"{cleaner_config_comment_a}\") private boolean a;\n"
+                    + "@ConfigEntry(path = \"b\", comment = \" {cleaner_config_comment_b} \") private boolean b;");
             assertThat(f.sites).extracting(s -> s.literalKey)
-                    .containsExactly("sidebar_config_comment_a", "sidebar_config_comment_b");
+                    .containsExactly("cleaner_config_comment_a", "cleaner_config_comment_b");
             assertThat(f.sites).extracting(s -> s.kind.name()).containsOnly("CONFIG_COMMENT");
             assertThat(f.sites).extracting(s -> s.line).containsExactly(2, 3);
         }
@@ -691,7 +691,7 @@ class UltiCleanerLanguageCatalogueTest {
         @Test
         @DisplayName("a literal comment, a token with more text, two tokens and an empty token are not key sites")
         void otherCommentsAreNotKeySites() {
-            SourceFile f = source("@ConfigEntry(path = \"a\", comment = \"Enable the sidebar\") private boolean a;\n"
+            SourceFile f = source("@ConfigEntry(path = \"a\", comment = \"Enable the cleaner\") private boolean a;\n"
                     + "@ConfigEntry(path = \"b\", comment = \"{key} and more\") private boolean b;\n"
                     + "@ConfigEntry(path = \"c\", comment = \"{one}{two}\") private boolean c;\n"
                     + "@ConfigEntry(path = \"d\", comment = \"{}\") private boolean d;\n"
