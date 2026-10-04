@@ -46,11 +46,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The comments above the keys of `config/cleaner.yml` now come from the module's language files: a
   server set to `language: en` writes English comments on a fresh install (earlier versions wrote
   Chinese-only comments in every language). An existing file's comments on these 33 keys switch to the
-  server's language at the next start; values are untouched, and a comment you wrote by hand above one
-  of these keys is replaced; a `/ul reload` after changing `language` refreshes them too (UltiKits/UltiCleaner#33).
+  server's language the next time the framework writes the file; a comment you wrote by hand above one
+  of these keys is replaced. The module itself never rewrites your values on `/ul reload` (an unreadable
+  value or a key you deleted stays as you left it); after you change `language`, the comments follow once
+  the framework release that refreshes them on reload is installed, or at the next write (UltiKits/UltiCleaner#33).
 - `config/cleaner.yml` 中各配置项上方的注释现在取自模块的语言文件：`language: en` 的服务器全新安装时写入英文注释
-  （此前所有语言下都写入纯中文注释）。已有文件中这 33 项的注释会在下次启动时切换为服务器语言；配置值不变，
-  你手写在这些配置项上方的注释会被替换；修改 `language` 后执行 `/ul reload` 也会刷新它们（UltiKits/UltiCleaner#33）。
+  （此前所有语言下都写入纯中文注释）。已有文件中这 33 项的注释会在框架下次写入该文件时切换为服务器语言；你手写在这些配置项上方的注释会被替换。
+  `/ul reload` 时本模块不会改写你的任何配置值（无法读取的值、你删除的键都保持原样）；修改 `language` 后，注释会在安装了
+  “重载时刷新注释”的框架版本后随之更新，或在下一次写入时更新（UltiKits/UltiCleaner#33）。
 - `item.whitelist` entries are now read the way the server reads a material name, so a lower-case
   entry such as `diamond` protects diamonds. An entry that names no material (for example a typo) is
   ignored and named in a console warning at start-up and on `/ul reload`; before, it was accepted
