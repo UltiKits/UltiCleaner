@@ -309,6 +309,28 @@ class CleanerConfigTextTest {
     }
 
     @Test
+    @DisplayName("a reload never rewrites a value the operator typed, an unreadable one or a key they deleted (#33)")
+    void reloadNeverRewritesTheOperatorsValues() throws Exception {
+        language[0] = "en";
+        StringBuilder yaml = new StringBuilder("item:\n  interval: 3O0\n  warn-times:\n  - 10\n  - abc\n");
+        yaml.append("messages:\n");
+        for (Setting s : SETTINGS) {
+            yaml.append("  ").append(s.path.substring("messages.".length())).append(": custom ").append(s.path).append('\n');
+        }
+        Files.createDirectories(file().getParentFile().toPath());
+        Files.write(file().toPath(), yaml.toString().getBytes(StandardCharsets.UTF_8));
+        CleanerConfig config = load();
+        start(config);
+        byte[] before = bytes();
+        assertThat(new String(before, StandardCharsets.UTF_8)).as("the operator's text survived the start").contains("interval: 3O0").contains("- abc");
+
+        config.reload();
+        reload();
+
+        assertThat(new String(bytes(), StandardCharsets.UTF_8)).as("the file after a reload").isEqualTo(new String(before, StandardCharsets.UTF_8));
+    }
+
+    @Test
     @DisplayName("onReload() after a language switch rewrites every setting in the new language, in both directions")
     void reloadFollowsALanguageSwitchBothWays() throws Exception {
         for (String[] direction : new String[][] {{"en", "zh"}, {"zh", "en"}}) {
