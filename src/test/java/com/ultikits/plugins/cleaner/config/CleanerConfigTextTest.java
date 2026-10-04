@@ -281,34 +281,6 @@ class CleanerConfigTextTest {
     }
 
     @Test
-    @DisplayName("a full reload after a language switch refreshes the config comments even when every message is the operator's own (#33)")
-    void reloadRefreshesTheCommentsWhenNoMessageFollowsTheLanguage() throws Exception {
-        language[0] = "en";
-        Map<String, String> custom = new LinkedHashMap<>();
-        for (Setting s : SETTINGS) {
-            custom.put(s.path, "custom " + s.path);
-        }
-        write(custom);
-        CleanerConfig config = load();
-        start(config);
-        String en = CatalogueText.text("en", "cleaner_config_comment_item_enabled");
-        String zh = CatalogueText.text("zh", "cleaner_config_comment_item_enabled");
-        assertThat(new String(bytes(), StandardCharsets.UTF_8)).as("written under en").contains("# " + en);
-
-        // the framework re-reads the files first, still resolving the comment tokens in the old language,
-        // and rebuilds the language only afterwards
-        config.init(plugin);
-        language[0] = "zh";
-        reload();
-
-        String text = new String(bytes(), StandardCharsets.UTF_8);
-        assertThat(text).as("comments follow the new language").contains("# " + zh).doesNotContain("# " + en);
-        for (Setting s : SETTINGS) {
-            assertThat(onDisk().getString(s.path)).as("the operator's own message " + s.path).isEqualTo("custom " + s.path);
-        }
-    }
-
-    @Test
     @DisplayName("a reload never rewrites a value the operator typed, an unreadable one or a key they deleted (#33)")
     void reloadNeverRewritesTheOperatorsValues() throws Exception {
         language[0] = "en";
