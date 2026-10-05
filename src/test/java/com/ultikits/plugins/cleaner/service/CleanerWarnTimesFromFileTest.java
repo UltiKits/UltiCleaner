@@ -187,9 +187,9 @@ class CleanerWarnTimesFromFileTest {
         assertThat(config.getItemWarnTimes()).as("the elements the framework could bind").containsExactly(10, 1);
         assertThat(frameworkWarnings).as("the framework names each skipped element")
                 .anySatisfy(w -> assertThat(w).isEqualTo("File config/cleaner.yml, key 'item.warn-times[1]', "
-                        + "declared as Integer: found text abc; skipped or using the declared default"))
+                        + "declared as Integer: found text abc (reason: Number is not exactly representable as java.lang.Integer); skipped or using the declared default"))
                 .anySatisfy(w -> assertThat(w).isEqualTo("File config/cleaner.yml, key 'item.warn-times[2]', "
-                        + "declared as Integer: found Double 2.5; skipped or using the declared default"));
+                        + "declared as Integer: found Double 2.5 (reason: Number is not exactly representable as java.lang.Integer); skipped or using the declared default"));
         CleanerService service = serviceFor(config);
 
         assertThat(broadcastsCountingDownFrom(service, "itemCountdown", "tickItemClean", 12))
