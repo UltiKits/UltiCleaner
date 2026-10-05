@@ -1,5 +1,6 @@
 package com.ultikits.plugins.cleaner.config;
 
+import com.ultikits.plugins.cleaner.UltiCleaner;
 import com.ultikits.plugins.cleaner.i18n.CatalogueText;
 import com.ultikits.ultitools.abstracts.UltiToolsPlugin;
 
@@ -84,8 +85,13 @@ class CleanerConfigCommentsTest {
 
     private CleanerConfig load(String language) throws IOException {
         Files.createDirectories(file().getParentFile().toPath());
-        UltiToolsPlugin plugin = Mockito.mock(UltiToolsPlugin.class, invocation -> {
+        // The module's own class, so the framework's real shippedCatalogueTexts reads this module's catalogues from
+        // its code source and recognises a comment it wrote in either language as its own (framework #604, PR #611).
+        UltiToolsPlugin plugin = Mockito.mock(UltiCleaner.class, invocation -> {
             String name = invocation.getMethod().getName();
+            if ("shippedCatalogueTexts".equals(name)) {
+                return invocation.callRealMethod();
+            }
             if ("getConfigFolder".equals(name)) {
                 return tempDir.toString();
             }
