@@ -45,15 +45,20 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - The comments above the keys of `config/cleaner.yml` now come from the module's language files: a
   server set to `language: en` writes English comments on a fresh install (earlier versions wrote
-  Chinese-only comments in every language). An existing file's comments on these 33 keys switch to the
-  server's language the next time the framework writes the file; a comment you wrote by hand above one
-  of these keys is replaced. The module itself never rewrites your values on `/ul reload` (an unreadable
-  value or a key you deleted stays as you left it); after you change `language`, the comments follow once
-  the framework release that refreshes them on reload is installed, or at the next write (UltiKits/UltiCleaner#33).
+  Chinese-only comments in every language). The comments the framework wrote on these 33 keys, the Chinese
+  ones earlier versions wrote included, switch to the server's language at the next start, and after you
+  change `language` and run `/ul reload`; a comment you wrote yourself is kept as you wrote it
+  (UltiKits/UltiTools-Reborn#611). On `/ul reload` this module writes `config/cleaner.yml` only to re-render a
+  broadcast message that still holds built-in text after a `language` change. That write changes only those
+  message lines: a value the framework could not read (for example `interval: 3O0`), a key you deleted and
+  your own comments stay as you left them (UltiKits/UltiTools-Reborn#611). Without a `language` change a
+  reload does not write the file (UltiKits/UltiCleaner#33).
 - `config/cleaner.yml` 中各配置项上方的注释现在取自模块的语言文件：`language: en` 的服务器全新安装时写入英文注释
-  （此前所有语言下都写入纯中文注释）。已有文件中这 33 项的注释会在框架下次写入该文件时切换为服务器语言；你手写在这些配置项上方的注释会被替换。
-  `/ul reload` 时本模块不会改写你的任何配置值（无法读取的值、你删除的键都保持原样）；修改 `language` 后，注释会在安装了
-  “重载时刷新注释”的框架版本后随之更新，或在下一次写入时更新（UltiKits/UltiCleaner#33）。
+  （此前所有语言下都写入纯中文注释）。框架在这 33 项上写下的注释（包括旧版本写下的中文注释）会在下次启动时、以及你修改
+  `language` 并执行 `/ul reload` 后切换为服务器语言；你自己写的注释保持原样（UltiKits/UltiTools-Reborn#611）。
+  `/ul reload` 时本模块只为一件事写入 `config/cleaner.yml`：修改 `language` 后，把仍为内置文本的广播消息改写为新语言。
+  这次写入只改动这些消息所在的行：框架无法读取的值（例如 `interval: 3O0`）、你删除的键以及你自己的注释都保持原样
+  （UltiKits/UltiTools-Reborn#611）。未修改 `language` 时，重载不会写入该文件（UltiKits/UltiCleaner#33）。
 - `item.whitelist` entries are now read the way the server reads a material name, so a lower-case
   entry such as `diamond` protects diamonds. An entry that names no material (for example a typo) is
   ignored and named in a console warning at start-up and on `/ul reload`; before, it was accepted
