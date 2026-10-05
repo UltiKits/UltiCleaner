@@ -96,14 +96,14 @@ class CleanerConfigTextTest {
             new Setting("cleanProgressMessage", "messages.clean-progress", "clean_progress", "", "&7[清理] &f清理进度: &e{CURRENT}&f/&e{TOTAL}"),
             new Setting("cleanCancelledMessage", "messages.clean-cancelled", "clean_cancelled", "", "&c[清理] &f清理操作被其他插件取消！"));
 
-    /** The fields that carried {@code @NotEmpty} at origin/master: the 7 above plus four that never changed. */
+    /** The fields that carried {@code @NotEmpty} at origin/master: the 7 above plus two that never changed (the two warn-times lists lost it in #34: the framework applies @NotEmpty to text only). */
     private static final Set<String> NOT_EMPTY_AT_MASTER = new TreeSet<>();
 
     static {
         for (Setting s : SETTINGS) {
             NOT_EMPTY_AT_MASTER.add(s.field);
         }
-        NOT_EMPTY_AT_MASTER.addAll(Arrays.asList("itemWarnTimes", "entityWarnTimes", "entityTypes", "tpsSampleWindow"));
+        NOT_EMPTY_AT_MASTER.addAll(Arrays.asList("entityTypes", "tpsSampleWindow"));
     }
 
     private static final String[] LANGUAGES = {"en", "zh"};
@@ -278,6 +278,162 @@ class CleanerConfigTextTest {
             assertThat(bytes()).as(code).isEqualTo(afterFirst);
             verify(second, never()).save();
         }
+    }
+
+    @Test
+    @DisplayName("a reload never rewrites a value the operator typed, an unreadable one or a key they deleted (#33)")
+    void reloadNeverRewritesTheOperatorsValues() throws Exception {
+        language[0] = "en";
+        StringBuilder yaml = new StringBuilder("item:\n  interval: 3O0\n  warn-times:\n  - 10\n  - abc\n");
+        yaml.append("messages:\n");
+        for (Setting s : SETTINGS) {
+            yaml.append("  ").append(s.path.substring("messages.".length())).append(": custom ").append(s.path).append('\n');
+        }
+        Files.createDirectories(file().getParentFile().toPath());
+        Files.write(file().toPath(), yaml.toString().getBytes(StandardCharsets.UTF_8));
+        CleanerConfig config = load();
+        start(config);
+        String started = new String(bytes(), StandardCharsets.UTF_8);
+        assertThat(started).as("the operator's text survived the start").contains("interval: 3O0").contains("- abc");
+        // The operator deletes a key after the start (the start wrote every missing key in).
+        String edited = withoutItemKey(started, "enabled");
+        Files.write(file().toPath(), edited.getBytes(StandardCharsets.UTF_8));
+
+        config.reload();
+        reload();
+
+        assertThat(new String(bytes(), StandardCharsets.UTF_8)).as("the file after a reload").isEqualTo(edited);
+    }
+
+    /**
+     * The two writes a {@code /ul reload} after a language switch makes, measured one at a time. The server
+     * switches from {@code zh} to {@code en}; the test switches the language before the entity's own
+     * {@code reload()}, so that reload's comment-only rewrite stands in for the framework's refresh after the
+     * language rebuild (both are the same gated write of the framework's own comment lines). Then the module's
+     * {@code onReload()} re-renders the seven messages that still hold built-in Chinese text.
+     */
+    @Test
+    @DisplayName("after a language switch a reload rewrites only the message lines that still hold built-in text; a typo value, a key the operator deleted and their own comment stay byte for byte")
+    void languageSwitchReloadRewritesOnlyTheMessageLines() throws Exception {
+        language[0] = "zh";
+        CleanerConfig config = spy(load());
+        start(config);
+        String edited = operatorEdits(new String(bytes(), StandardCharsets.UTF_8));
+        Files.write(file().toPath(), edited.getBytes(StandardCharsets.UTF_8));
+
+        language[0] = "en";
+        config.reload();
+        String afterComments = new String(bytes(), StandardCharsets.UTF_8);
+        reload();
+        String after = new String(bytes(), StandardCharsets.UTF_8);
+
+        // The framework's comment refresh: comment lines only, never the operator's own comment.
+        assertThat(changedLines(edited, afterComments)).as("the framework's comments followed the switch").isNotEmpty();
+        for (int line : changedLines(edited, afterComments)) {
+            String[] was = edited.split("\n", -1);
+            assertThat(was[line].trim()).as("line " + (line + 1) + " changed by the framework's comment refresh:\n" + afterComments)
+                    .startsWith("#").doesNotContain("Operator note");
+        }
+        // The module's save: exactly the seven message lines.
+        Set<String> rewritten = new TreeSet<>();
+        String[] before = afterComments.split("\n", -1);
+        String[] now = after.split("\n", -1);
+        for (int line : changedLines(afterComments, after)) {
+            String message = messageKeyOf(now[line]);
+            assertThat(message).as("line " + (line + 1) + " changed by the module's save but is not a message setting: '"
+                    + before[line] + "' -> '" + now[line] + "'").isNotNull();
+            assertThat(messageKeyOf(before[line])).as("line " + (line + 1) + " holds the same message setting before and after")
+                    .isEqualTo(message);
+            rewritten.add(message);
+        }
+        Set<String> all = new TreeSet<>();
+        for (Setting s : SETTINGS) {
+            all.add(s.path);
+            assertThat(onDisk().getString(s.path)).as(s.path + " follows the switch").isEqualTo(s.text("en"));
+            assertThat(get(config, s)).as(s.field).isEqualTo(s.text("en"));
+        }
+        assertThat(rewritten).as("the message lines the module's save rewrote").isEqualTo(all);
+        assertThat(after).as("the operator's typo and comment, and no item.enabled written back")
+                .contains("  # Operator note: cleaned every five minutes on purpose\n  interval: 3O0")
+                .doesNotContainPattern("(?m)^item:\\n(?:  .*\\n|\\s*#.*\\n)*?  enabled:");
+        verify(config, times(1)).save();
+    }
+
+    /**
+     * The 0-based indexes of the lines that differ between {@code was} and {@code now}, which must have the
+     * same number of lines (a key written back or removed fails here, with the file in the message).
+     */
+    private static List<Integer> changedLines(String was, String now) {
+        String[] a = was.split("\n", -1);
+        String[] b = now.split("\n", -1);
+        assertThat(b.length).as("line count unchanged (no key written back, none removed); the file now:\n" + now).isEqualTo(a.length);
+        List<Integer> changed = new ArrayList<>();
+        for (int i = 0; i < a.length; i++) {
+            if (!a[i].equals(b[i])) {
+                changed.add(i);
+            }
+        }
+        return changed;
+    }
+
+    @Test
+    @DisplayName("without a language switch the same reload writes nothing: the typo value, the deleted key and the operator's comment stay")
+    void reloadWithoutALanguageSwitchWritesNothing() throws Exception {
+        language[0] = "zh";
+        CleanerConfig config = spy(load());
+        start(config);
+        String edited = operatorEdits(new String(bytes(), StandardCharsets.UTF_8));
+        Files.write(file().toPath(), edited.getBytes(StandardCharsets.UTF_8));
+
+        config.reload();
+        reload();
+
+        assertThat(new String(bytes(), StandardCharsets.UTF_8)).as("the file after a reload").isEqualTo(edited);
+        verify(config, never()).save();
+    }
+
+    /**
+     * What an operator does to a started file: {@code item.interval} becomes the typo {@code 3O0} with a
+     * hand-written comment directly above it, and {@code item.enabled} is deleted together with the comment
+     * line above it. Each edit is asserted to have applied.
+     */
+    private static String operatorEdits(String started) {
+        String typo = started.replaceFirst("(?m)^(item:\\n(?:(?:  .*|\\s*#.*)\\n)*?)  interval: 300$",
+                "$1  # Operator note: cleaned every five minutes on purpose\n  interval: 3O0");
+        assertThat(typo).as("the typo and the comment applied to:\n" + started).isNotEqualTo(started)
+                .contains("  # Operator note: cleaned every five minutes on purpose\n  interval: 3O0");
+        return withoutItemKey(typo, "enabled");
+    }
+
+    /** {@code text} without the {@code item.<key>} line and the comment line directly above it. */
+    private static String withoutItemKey(String text, String key) {
+        String[] lines = text.split("\n", -1);
+        List<String> kept = new ArrayList<>(Arrays.asList(lines));
+        boolean inItem = false;
+        for (int i = 0; i < lines.length; i++) {
+            if (!lines[i].startsWith(" ") && !lines[i].startsWith("#") && !lines[i].isEmpty()) {
+                inItem = lines[i].startsWith("item:");
+            } else if (inItem && lines[i].startsWith("  " + key + ":")) {
+                kept.remove(i);
+                if (i > 0 && lines[i - 1].trim().startsWith("#")) {
+                    kept.remove(i - 1);
+                }
+                String result = String.join("\n", kept);
+                assertThat(result).as("item." + key + " deleted").doesNotContainPattern("(?m)^item:\\n(?:  .*\\n|\\s*#.*\\n)*?  " + key + ":");
+                return result;
+            }
+        }
+        throw new AssertionError("no item." + key + " line in:\n" + text);
+    }
+
+    /** The message setting a line of cleaner.yml holds ({@code messages.warn} for {@code "  warn: ..."}), or null. */
+    private static String messageKeyOf(String line) {
+        for (Setting s : SETTINGS) {
+            if (line.startsWith("  " + s.path.substring("messages.".length()) + ": ")) {
+                return s.path;
+            }
+        }
+        return null;
     }
 
     @Test

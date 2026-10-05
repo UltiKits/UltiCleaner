@@ -43,6 +43,26 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- The comments above the keys of `config/cleaner.yml` now come from the module's language files: a
+  server set to `language: en` writes English comments on a fresh install (earlier versions wrote
+  Chinese-only comments in every language). The comments the framework wrote on these 33 keys, the Chinese
+  ones earlier versions wrote included, switch to the server's language at the next start, and after you
+  change `language` and run a bare `/ul reload`; a comment you wrote yourself is kept as you wrote it
+  (UltiKits/UltiTools-Reborn#611). On `/ul reload` this module writes `config/cleaner.yml` only to re-render a
+  broadcast message that still holds built-in text in another language, as every message does after a
+  `language` change. That write changes only those message lines: a value the framework could not read (for
+  example `interval: 3O0`), a key you deleted and your own comments stay as you left them
+  (UltiKits/UltiTools-Reborn#611). A reload that finds no such message and no framework comment in another
+  language writes nothing to the file, which is the usual case when `language` did not change
+  (UltiKits/UltiCleaner#33).
+- `config/cleaner.yml` 中各配置项上方的注释现在取自模块的语言文件：`language: en` 的服务器全新安装时写入英文注释
+  （此前所有语言下都写入纯中文注释）。框架在这 33 项上写下的注释（包括旧版本写下的中文注释）会在下次启动时、以及你修改
+  `language` 并执行不带参数的 `/ul reload` 后切换为服务器语言；你自己写的注释保持原样（UltiKits/UltiTools-Reborn#611）。
+  `/ul reload` 时本模块只为一件事写入 `config/cleaner.yml`：把仍为另一种语言内置文本的广播消息改写为当前语言（修改 `language` 后
+  所有这样的消息都会被改写）。
+  这次写入只改动这些消息所在的行：框架无法读取的值（例如 `interval: 3O0`）、你删除的键以及你自己的注释都保持原样
+  （UltiKits/UltiTools-Reborn#611）。如果重载时既没有这样的消息、也没有另一种语言的框架注释，则不会写入该文件——未修改
+  `language` 时通常如此（UltiKits/UltiCleaner#33）。
 - `item.whitelist` entries are now read the way the server reads a material name, so a lower-case
   entry such as `diamond` protects diamonds. An entry that names no material (for example a typo) is
   ignored and named in a console warning at start-up and on `/ul reload`; before, it was accepted
@@ -58,16 +78,21 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   继续删除实体，直到处理完整个列表。以这种方式停止的清理不会发出任何广播（UltiKits/UltiCleaner#26）。
 
 - Countdown warnings before a scheduled cleanup ("Ground items will be cleaned in T seconds!" and the
-  entity line) are broadcast again. The framework reads each `item.warn-times` / `entity.warn-times`
+  entity line) are broadcast again. Earlier framework versions read each `item.warn-times` / `entity.warn-times`
   entry from `config/cleaner.yml` as text, and the module compared it with a number, so no warning was
-  ever sent once the file existed. Each entry is now read as a whole number of seconds. A list with an
-  entry that is not a whole number (for example `2.5`) is not used: the default
-  `[60, 30, 10, 5, 3, 2, 1]` applies, and start-up and `/ul reload` log a warning naming the key, the
-  list as written and the default (UltiKits/UltiCleaner#22).
-- 定时清理前的倒计时警告（「地面物品将在 T 秒后清理！」及实体那一行）恢复广播。框架把 `config/cleaner.yml` 中
+  ever sent once the file existed. Each entry is now read as a whole number of seconds, including a number
+  an older file stored as text. An entry that cannot be read as one (for example `abc` or `2.5`) is skipped
+  with a console warning naming the key, the entry's position and its value, and the other entries are used.
+  A list that is empty, or in which no entry could be read, is not used: the default
+  `[60, 30, 10, 5, 3, 2, 1]` applies and start-up and every `/ul reload` log a warning naming the key and
+  the default; before, such a list silently switched every countdown warning off (UltiKits/UltiCleaner#22,
+  UltiKits/UltiCleaner#34).
+- 定时清理前的倒计时警告（「地面物品将在 T 秒后清理！」及实体那一行）恢复广播。此前的框架把 `config/cleaner.yml` 中
   `item.warn-times` / `entity.warn-times` 的每一项读成文本，而模块拿它与数字比较，所以文件存在后从未发出过任何警告。
-  现在每一项都按整数秒读取。若列表中有不是整数的项（例如 `2.5`），该列表不予采用，改用默认值
-  `[60, 30, 10, 5, 3, 2, 1]`，并在启动和 `/ul reload` 时记一条警告，写明键名、列表原值与默认值（UltiKits/UltiCleaner#22）。
+  现在每一项都按整数秒读取，旧文件中以文本形式保存的数字也一样。读不成整数的项（例如 `abc` 或 `2.5`）会被跳过，
+  并在控制台记一条警告，写明键名、该项的位置与原值，其余项照常使用。列表为空、或其中没有任何一项能读成整数时，该列表不予采用，改用默认值
+  `[60, 30, 10, 5, 3, 2, 1]`，并在启动和每次 `/ul reload` 时记一条警告，写明键名与默认值；此前这样的列表会让所有倒计时
+  警告悄无声息地失效（UltiKits/UltiCleaner#22、UltiKits/UltiCleaner#34）。
 
 - The warning about a key this version no longer reads now prints the configuration file's path exactly
   as it is. A path containing `{KEY}` or `{REASON}` was rewritten by the placeholders filled after it.

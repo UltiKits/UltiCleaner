@@ -85,8 +85,11 @@ public class UltiCleaner extends UltiToolsPlugin {
 
     /**
      * Writes every broadcast message in {@code config/cleaner.yml} that is still built-in text in the
-     * server's language and saves the file once, so the file holds what the module broadcasts; any other
-     * value is the operator's and is kept (maintainer decision 2026-09-25, UltiKits/UltiCleaner#17).
+     * server's language and saves the file once, so the file holds what the module broadcasts (maintainer
+     * decision 2026-09-25, UltiKits/UltiCleaner#17). The save changes only those message lines: the
+     * framework writes only the settings this method changed, and only where the file still holds the text
+     * it read, so a value it could not read, a key the operator deleted and the operator's own comments stay
+     * as left (UltiKits/UltiTools-Reborn#611). When no message changed, nothing is written.
      * Runs from {@link #registerSelf()} and from {@link #onReload()}, both after the module's language is
      * loaded -- never from a configuration change listener, which the framework fires before it reloads
      * the language. A value already in the current language matches nothing to replace, so a second
@@ -97,7 +100,10 @@ public class UltiCleaner extends UltiToolsPlugin {
      */
     private void writeConfigTextInServerLanguage() {
         CleanerConfig config = getContext().getBean(CleanerConfig.class);
-        if (config == null || !config.materializeText(ConfigTextDefaults.jarLanguage(CleanerConfig.class, getLanguageCode())::getLocalizedText)) {
+        if (config == null) {
+            return;
+        }
+        if (!config.materializeText(ConfigTextDefaults.jarLanguage(CleanerConfig.class, getLanguageCode())::getLocalizedText)) {
             return;
         }
         try {
