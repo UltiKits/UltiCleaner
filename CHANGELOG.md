@@ -94,6 +94,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `[60, 30, 10, 5, 3, 2, 1]`，并在启动和每次 `/ul reload` 时记一条警告，写明键名与默认值；此前这样的列表会让所有倒计时
   警告悄无声息地失效（UltiKits/UltiCleaner#22、UltiKits/UltiCleaner#34）。
 
+- `entity.types: []` in `config/cleaner.yml` no longer switches entity cleanup off without a word. The
+  framework's `@NotEmpty` now covers lists, so an empty `entity.types` runs on the declared default types
+  (`ZOMBIE`, `SKELETON`, `CREEPER`, `SPIDER`, `CAVE_SPIDER`, `ENDERMAN`, `WITCH`, `SLIME`, `PHANTOM`) with one
+  warning from the framework naming the key, the empty value and the default; the file is not changed. The
+  two `warn-times` lists keep this module's own empty-list warning. A list that holds only names that are no
+  entity type is not empty: each unknown name is warned about and nothing is cleaned
+  (UltiKits/UltiCleaner#34).
+- `config/cleaner.yml` 中的 `entity.types: []` 不再悄无声息地关闭实体清理。框架的 `@NotEmpty` 现已覆盖列表，
+  因此空的 `entity.types` 改用声明的默认类型（`ZOMBIE`、`SKELETON`、`CREEPER`、`SPIDER`、`CAVE_SPIDER`、`ENDERMAN`、
+  `WITCH`、`SLIME`、`PHANTOM`），并由框架记一条警告，写明键名、空值与默认值；文件不被改动。两个 `warn-times` 列表保留本模块自己的
+  空列表警告。只包含非实体类型名称的列表不算空：每个未知名称都会被警告，且不清理任何实体（UltiKits/UltiCleaner#34）。
+
 - The warning about a key this version no longer reads now prints the configuration file's path exactly
   as it is. A path containing `{KEY}` or `{REASON}` was rewritten by the placeholders filled after it.
 - 关于本版本已不再读取的配置键的警告，现在会原样打印配置文件路径。此前路径中若含有 `{KEY}` 或 `{REASON}`，

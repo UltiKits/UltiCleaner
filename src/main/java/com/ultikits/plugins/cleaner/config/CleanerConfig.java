@@ -35,7 +35,11 @@ public class CleanerConfig extends AbstractConfigEntity {
      * list element as an {@code Integer} and skips one that is not a whole number with a located
      * warning, so a file's list is used as far as it binds (UltiKits/UltiCleaner#22); a list that binds
      * to nothing is replaced by this default, with a warning from the service (UltiKits/UltiCleaner#34).
-     * These two fields carry no {@code @NotEmpty}: the framework applies it to text only.
+     * These two fields carry no {@code @NotEmpty}, although the framework's {@code @NotEmpty} now covers lists
+     * (UltiKits/UltiTools-Reborn#632): the module's own warning, which names the key and the default at every
+     * enable and reload, predates it and is kept as worded. {@code entity.types} carries it, so
+     * {@code entity.types: []} runs on the declared default types with the framework's warning and the file
+     * unchanged.
      */
     public static final List<Integer> DEFAULT_WARN_TIMES =
             Collections.unmodifiableList(Arrays.asList(60, 30, 10, 5, 3, 2, 1));
