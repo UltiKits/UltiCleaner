@@ -80,6 +80,12 @@ for real-machine verification, not user-facing documentation.
   `config/cleaner.yml` key that shortens its interval below the shipped default, and the value to
   set it to, so the executor never has to guess a wait. A row with no stated wait would be a row
   the executor cannot run without guessing, and a guessed wait produces a false `blocked`.
+- **Console lines carry the module-logger prefix.** Every line this module logs reaches the console as
+  `[UltiTools] [UltiCleaner] <text>`: Paper adds `[UltiTools] `, and the framework's module logger (`PluginLogger`)
+  adds `[UltiCleaner] ` (this module's `plugin.yml` `name`). A console line quoted below is the `<text>` after both
+  prefixes, character for character, unless the row quotes a prefix itself; a row that counts or excludes this
+  module's console lines means lines carrying `[UltiCleaner]`. A line the framework logs is quoted after Paper's
+  prefix, with its own `[UltiTools-API] ` where the row shows it.
 
 ## Commands
 
