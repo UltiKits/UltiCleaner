@@ -2,8 +2,6 @@
 
 **高性能 Minecraft 服务器清理插件** - 自动清理地面物品和实体，支持智能清理、TPS 自适应和分批处理。
 
-[![Java](https://img.shields.io/badge/Java-21%2B-orange.svg)](https://adoptium.net/)
-[![Paper](https://img.shields.io/badge/Paper-1.21%2B-green.svg)](https://papermc.io/)
 [![UltiTools-API](https://img.shields.io/badge/UltiTools--API-6.3.0%2B-blue.svg)](https://github.com/UltiKits/UltiTools-Reborn)
 
 ## ✨ 功能特性
@@ -34,7 +32,7 @@
 ## 📦 安装
 
 1. 确保已安装 [UltiTools-API](https://github.com/UltiKits/UltiTools-Reborn) 6.3.0 或更高版本。本模块声明 `api-version: 630`，
-   更早的框架会拒绝加载它；仅支持 Paper 1.21 及以上、Java 21 及以上，与其所依赖的 UltiTools 框架一致
+   更早的框架会拒绝加载它
 2. 下载最新版本的 UltiCleaner
 3. 将 JAR 文件放入 `plugins/UltiTools/plugins/` 目录
 4. 重启服务器或执行 `/ul reload`
@@ -159,7 +157,7 @@ public class CleanerListener implements Listener {
 
 ## 🆚 与旧版对比
 
-| 功能 | UltiCleaner 2.0 | 旧版 UltiTools |
+| 功能 | UltiCleaner 模块 | 旧版 UltiTools |
 |------|-----------------|----------------|
 | 物品清理 | ✅ | ✅ |
 | 实体清理 | ✅ | ✅ |
