@@ -35,8 +35,8 @@
    更早的框架会拒绝加载它
 2. 下载最新版本的 UltiCleaner
 3. 将 JAR 文件放入 `plugins/UltiTools/plugins/` 目录
-4. 重启服务器或执行 `/ul reload`
-5. 编辑 `plugins/UltiTools/UltiCleaner/config/cleaner.yml` 配置
+4. 重启服务器（`/ul reload` 只重载配置，不会加载新的模块 JAR）
+5. 编辑 `plugins/UltiTools/pluginConfig/UltiCleaner/config/cleaner.yml` 配置
 
 ## 🎮 命令
 
