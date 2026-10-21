@@ -5,7 +5,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 本文件记录本项目的所有重要更改，格式基于 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)。
 
-## [Unreleased]
+## [2.0.0] - 2026-10-21
 
 ### Added
 
@@ -26,14 +26,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - This version requires UltiTools 6.3.0 or later and declares `api-version: 630` in `plugin.yml`
-  (it was `620`). An older framework now refuses the module before its start-up runs, with a warning that
-  the UltiTools version is outdated; the refusal names the module by its `plugin.yml` `name:`, here
-  `UltiCleaner`. The README's framework minimum and its server and Java badges now say UltiTools 6.3.0+,
-  Paper 1.21+ and Java 21+ (UltiKits/UltiTools-Reborn#544).
-- 本版本需要 UltiTools 6.3.0 或更高版本，并在 `plugin.yml` 中声明 `api-version: 630`（原为 `620`）。更早的框架现在会在
-  模块的启动逻辑运行之前拒绝加载它，并给出 UltiTools 版本过旧的警告；拒绝信息按 `plugin.yml` 的 `name:` 指明模块，
-  此处为 `UltiCleaner`。README 中的框架最低版本以及服务端与 Java 徽章已改为 UltiTools 6.3.0+、Paper 1.21+、
-  Java 21+（UltiKits/UltiTools-Reborn#544）。
+  (the released 1.0.0 declared `620`). An older framework now refuses the module before its start-up runs,
+  with a warning that the UltiTools version is outdated; the refusal names the module by its `plugin.yml`
+  `name:`, here `UltiCleaner` (UltiKits/UltiTools-Reborn#544).
+- 本版本需要 UltiTools 6.3.0 或更高版本，并在 `plugin.yml` 中声明 `api-version: 630`（已发布的 1.0.0 声明为 `620`）。
+  更早的框架现在会在模块的启动逻辑运行之前拒绝加载它，并给出 UltiTools 版本过旧的警告；拒绝信息按 `plugin.yml` 的
+  `name:` 指明模块，此处为 `UltiCleaner`（UltiKits/UltiTools-Reborn#544）。
 - `plugin.yml` now declares `identify-string: ulticleaner`, the key of this module's entry in the
   UltiCloud catalogue. The framework's update check and `/upm update` skip a module that does not
   declare it, so this module now takes part in both: a later published version carrying the same key
@@ -128,12 +126,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   会被随后填入的占位符改写。
 
 - For plugin authors: `/clean all` now fires one `CleanCompleteEvent` of type `ALL` after both of its
-  halves have finished, with the combined count and trigger `MANUAL`. Each half still fires its own
-  `ITEMS` or `ENTITIES` event first, as before. `CleanType.ALL` was declared but never fired
+  halves have finished, with the combined count and trigger `MANUAL`. A half with a non-empty cleanup
+  list that is not cancelled still fires its own `ITEMS` or `ENTITIES` event first, as before; an empty
+  or cancelled half does not fire that component event. `CleanType.ALL` was declared but never fired
   (UltiKits/UltiCleaner#16).
 - 面向插件作者：`/clean all` 现在会在两半都完成后触发一次类型为 `ALL` 的 `CleanCompleteEvent`，计数为两者之和、
-  触发方式为 `MANUAL`。两半仍会像以前一样各自先触发自己的 `ITEMS` 或 `ENTITIES` 事件。`CleanType.ALL` 此前只声明、
-  从未被触发（UltiKits/UltiCleaner#16）。
+  触发方式为 `MANUAL`。清理列表非空且未被取消的那一半仍会像以前一样先触发自己的 `ITEMS` 或 `ENTITIES` 事件；
+  列表为空或被取消的那一半不触发该分项事件。`CleanType.ALL` 此前只声明、从未被触发（UltiKits/UltiCleaner#16）。
 
 - `/clean all` now removes entities as well as ground items. The item cleanup and the entity cleanup
   shared one "cleaning in progress" flag, so an entity cleanup started in the same tick as an item
@@ -158,7 +157,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `language: en` 现在对 `/clean` 打印的全部内容（开始清理、清理进行中、`check`、`status` 与帮助）以及命令描述生效；
   这些内容原先在任何语言下都是写死的中文，而语言文件中其实已有其中大部分的英文文本（UltiKits/UltiCleaner#17）。
   `language: zh` 现在也对原先写死为英文的控制台日志生效：检测到的服务端与 TPS 监控启动行、`entity.types` 中的未知实体类型、
-  `/clean check` 与 `/clean status` 显示的 TPS 档位（`Normal`、`Low`、`Critical`），以及本版本不再读取的配置键的警告。
+  `/clean check` 与 `/clean status` 显示的 TPS 档位（`Normal`、`Low`、`Critical`），以及本版本不再读取的配置键的警告。英文措辞保持不变。
 
 - `/ul reload UltiCleaner` (and a bare `/ul reload`) now re-reads `config/cleaner.yml` and
   refreshes the module's language files before the module rebuilds the cleaner service's caches and
