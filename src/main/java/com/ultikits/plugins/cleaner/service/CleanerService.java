@@ -319,7 +319,7 @@ public class CleanerService {
         Bukkit.getPluginManager().callEvent(preEvent);
         
         if (preEvent.isCancelled()) {
-            broadcastMessage(cleanCancelledText());
+            broadcastCompletion(cleanCancelledText(), sender);
             done.accept(0);
             return;
         }
@@ -380,7 +380,7 @@ public class CleanerService {
         Bukkit.getPluginManager().callEvent(preEvent);
         
         if (preEvent.isCancelled()) {
-            broadcastMessage(cleanCancelledText());
+            broadcastCompletion(cleanCancelledText(), sender);
             done.accept(0);
             return;
         }

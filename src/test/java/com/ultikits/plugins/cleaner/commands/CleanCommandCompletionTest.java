@@ -2,6 +2,8 @@ package com.ultikits.plugins.cleaner.commands;
 
 import com.ultikits.plugins.cleaner.UltiCleanerTestHelper;
 import com.ultikits.plugins.cleaner.config.CleanerConfig;
+import com.ultikits.plugins.cleaner.events.PreEntityCleanEvent;
+import com.ultikits.plugins.cleaner.events.PreItemCleanEvent;
 import com.ultikits.plugins.cleaner.service.CleanerService;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
@@ -11,6 +13,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +35,8 @@ import static org.mockito.Mockito.*;
 class CleanCommandCompletionTest {
     private static final String ITEMS_DONE = ChatColor.GREEN + "[Cleaner] Cleaned 2 ground items!";
     private static final String ENTITIES_DONE = ChatColor.GREEN + "[Cleaner] Cleaned 2 entities!";
+    private static final String CANCELLED = ChatColor.RED + "[Cleaner] " + ChatColor.WHITE
+            + "Cleanup operation was cancelled by another plugin!";
 
     private CleanCommand command;
     private CleanerService service;
@@ -174,12 +179,93 @@ class CleanCommandCompletionTest {
         verifyRemovals("all");
     }
 
-    private void execute(String operation, CommandSender sender) {
+    @ParameterizedTest
+    @ValueSource(strings = {"entities", "items", "all"})
+    void consoleReceivesCancellationAndPlayerBroadcastIsPreserved(String operation) {
+        doReturn(Collections.singletonList(observer)).when(UltiCleanerTestHelper.getMockServer()).getOnlinePlayers();
+        cancelCleanups();
+
+        invokeCommand(operation, console);
+
+        int cancellations = operation.equals("all") ? 2 : 1;
+        verify(console, times(cancellations)).sendMessage(CANCELLED);
+        verify(observer, times(cancellations)).sendMessage(CANCELLED);
+        verify(console).sendMessage(contains("3"));
+        verifyNoBatchOrRemoval();
+        verifyNoCompletion(console);
+        verifyNoCompletion(observer);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"entities", "items", "all"})
+    void playerReceivesCancellationOnlyThroughTheBroadcast(String operation) {
+        doReturn(Arrays.asList(player, observer)).when(UltiCleanerTestHelper.getMockServer()).getOnlinePlayers();
+        cancelCleanups();
+
+        invokeCommand(operation, player);
+
+        int cancellations = operation.equals("all") ? 2 : 1;
+        verify(player, times(cancellations)).sendMessage(CANCELLED);
+        verify(observer, times(cancellations)).sendMessage(CANCELLED);
+        verifyNoInteractions(console);
+        verifyNoBatchOrRemoval();
+        verifyNoCompletion(player);
+        verifyNoCompletion(observer);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"entities", "items", "all"})
+    void consoleEmptyCleanupKeepsExistingItemReplyAndEntitySilence(String operation) {
+        entities.clear();
+        doReturn(Collections.singletonList(observer)).when(UltiCleanerTestHelper.getMockServer()).getOnlinePlayers();
+
+        invokeCommand(operation, console);
+
+        String emptyItems = ChatColor.GREEN + "[Cleaner] Cleaned 0 ground items!";
+        int itemReplies = operation.equals("entities") ? 0 : 1;
+        verify(console, times(itemReplies)).sendMessage(emptyItems);
+        verify(observer, times(itemReplies)).sendMessage(emptyItems);
+        verify(console, never()).sendMessage(contains("Cleaned 0 entities!"));
+        verify(observer, never()).sendMessage(contains("Cleaned 0 entities!"));
+        String started = UltiCleanerTestHelper.getMockPlugin().i18n("clean_started_" + operation)
+                .replace("{COUNT}", "0").replace("{ITEMS}", "0").replace("{ENTITIES}", "0");
+        verify(console).sendMessage(ChatColor.translateAlternateColorCodes('&', started));
+        verifyNoBatchOrRemoval();
+    }
+
+    private void cancelCleanups() {
+        when(config.getCleanCancelledMessage())
+                .thenReturn("&c[Cleaner] &fCleanup operation was cancelled by another plugin!");
+        PluginManager pluginManager = UltiCleanerTestHelper.getMockServer().getPluginManager();
+        doAnswer(invocation -> {
+            Object event = invocation.getArgument(0);
+            if (event instanceof PreItemCleanEvent) {
+                ((PreItemCleanEvent) event).setCancelled(true);
+            } else if (event instanceof PreEntityCleanEvent) {
+                ((PreEntityCleanEvent) event).setCancelled(true);
+            }
+            return null;
+        }).when(pluginManager).callEvent(any());
+    }
+
+    private void verifyNoBatchOrRemoval() {
+        assertThat(ticks).isEmpty();
+        assertThat(service.isCleaningInProgress()).isFalse();
+        for (Entity entity : entities) {
+            verify(entity, never()).remove();
+        }
+    }
+
+    private void invokeCommand(String operation, CommandSender sender) {
         switch (operation) {
             case "items": command.cleanItems(sender); break;
             case "entities": command.cleanEntities(sender); break;
             default: command.cleanAll(sender);
         }
+    }
+
+    private void execute(String operation, CommandSender sender) {
+        invokeCommand(operation, sender);
         assertThat(ticks).hasSize(operation.equals("all") ? 2 : 1);
         assertThat(service.isCleaningInProgress()).isTrue();
     }
