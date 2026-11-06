@@ -22,12 +22,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * The release metadata the framework reads from the shipped {@code plugin.yml}, pinned against the
- * repository's own records (UltiKits/UltiCleaner (release metadata), UltiKits/UltiTools-Reborn#474).
+ * repository's own records (<a href="https://github.com/UltiKits/UltiCleaner/pull/38">UltiCleaner PR #38</a>,
+ * UltiKits/UltiTools-Reborn#474).
  * <ul>
  *   <li>{@code api-version} is the lowest UltiTools level this build runs on. This module overrides
  *       the {@code onReload()}/{@code onUnregister()} hooks that exist only from UltiTools 6.3.0, so it
- *       must declare {@code 630}: an older framework then refuses it at load instead of silently never
- *       calling those hooks.</li>
+ *       must declare {@code 630}: an older framework then refuses it at load with a warning that names
+ *       the cause.</li>
  *   <li>{@code identify-string} is the key the framework's update check and {@code /upm update} use to
  *       find this module in the UltiCloud catalogue; a module without it is skipped by both. It must
  *       equal {@code identifyString} in {@code ultikits.json}, the record the catalogue entry is
