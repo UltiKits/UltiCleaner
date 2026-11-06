@@ -28,10 +28,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - This version requires UltiTools 6.3.0 or later and declares `api-version: 630` in `plugin.yml`
   (the released 1.0.0 declared `620`). An older framework now refuses the module before its start-up runs,
   with a warning that the UltiTools version is outdated; the refusal names the module by its `plugin.yml`
-  `name:`, here `UltiCleaner` (UltiKits/UltiTools-Reborn#544).
+  `name:`, here `UltiCleaner` (UltiKits/UltiTools-Reborn#544). Upgrade UltiTools to 6.3.0 or later before
+  replacing this module's JAR.
 - 本版本需要 UltiTools 6.3.0 或更高版本，并在 `plugin.yml` 中声明 `api-version: 630`（已发布的 1.0.0 声明为 `620`）。
   更早的框架现在会在模块的启动逻辑运行之前拒绝加载它，并给出 UltiTools 版本过旧的警告；拒绝信息按 `plugin.yml` 的
-  `name:` 指明模块，此处为 `UltiCleaner`（UltiKits/UltiTools-Reborn#544）。
+  `name:` 指明模块，此处为 `UltiCleaner`（UltiKits/UltiTools-Reborn#544）。更换模块 JAR 前请先将 UltiTools 升级到 6.3.0 或更高版本。
 - `plugin.yml` now declares `identify-string: ulticleaner`, the key of this module's entry in the
   UltiCloud catalogue. The framework's update check and `/upm update` skip a module that does not
   declare it, so this module now takes part in both: a later published version carrying the same key
@@ -126,13 +127,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   会被随后填入的占位符改写。
 
 - For plugin authors: `/clean all` now fires one `CleanCompleteEvent` of type `ALL` after both of its
-  halves have finished, with the combined count and trigger `MANUAL`. A half with a non-empty cleanup
-  list that is not cancelled still fires its own `ITEMS` or `ENTITIES` event first, as before; an empty
-  or cancelled half does not fire that component event. `CleanType.ALL` was declared but never fired
+  halves have finished, with the combined count and trigger `MANUAL`. A half that starts a non-empty,
+  non-cancelled cleanup still fires its own `ITEMS` or `ENTITIES` event first, as before; an empty,
+  cancelled or already-running half does not fire that component event and contributes 0 to the `ALL`
+  total. `CleanType.ALL` was declared but never fired
   (UltiKits/UltiCleaner#16).
 - 面向插件作者：`/clean all` 现在会在两半都完成后触发一次类型为 `ALL` 的 `CleanCompleteEvent`，计数为两者之和、
-  触发方式为 `MANUAL`。清理列表非空且未被取消的那一半仍会像以前一样先触发自己的 `ITEMS` 或 `ENTITIES` 事件；
-  列表为空或被取消的那一半不触发该分项事件。`CleanType.ALL` 此前只声明、从未被触发（UltiKits/UltiCleaner#16）。
+  触发方式为 `MANUAL`。开始执行非空且未被取消的清理的那一半仍会像以前一样先触发自己的 `ITEMS` 或 `ENTITIES` 事件；
+  列表为空、被取消或因该类清理已在进行中而跳过的那一半不触发该分项事件，且对 `ALL` 总数的贡献为 0。
+  `CleanType.ALL` 此前只声明、从未被触发（UltiKits/UltiCleaner#16）。
 
 - `/clean all` now removes entities as well as ground items. The item cleanup and the entity cleanup
   shared one "cleaning in progress" flag, so an entity cleanup started in the same tick as an item
