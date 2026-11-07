@@ -206,6 +206,24 @@ tps:
   low-threshold: 19.0   # 更敏感的TPS检测
 ```
 
+## Known limitations / 已知限制
+
+- **RCON replies:** when an RCON command starts a batched cleanup with eligible targets, the client receives
+  only the "Started cleaning …" line. Removal finishes on later ticks, after the RCON reply has already been
+  collected, so its completion message is not included in that reply. Do not use the RCON reply as proof of
+  completion: run `clean items`, `clean entities` or `clean all` from the direct server console when you need
+  the completion line, or check the remaining counts with `clean check` afterward.
+- **RCON 回复：** RCON 命令对符合条件的目标启动分批清理时，客户端只收到「已开始清理……」。实际移除发生在后续 tick，
+  此时 RCON 回复已收集完毕，因此完成消息不会包含在该回复里。不要把 RCON 回复当作清理完成的证据；需要完成消息时，
+  请在服务器直接控制台执行 `clean items`、`clean entities` 或 `clean all`，或稍后用 `clean check` 查看剩余数量。
+- **Commands proxied through `/execute`:** a player running `/execute as <entity> run clean …` can receive
+  a completion message twice: once from the online-player broadcast and once through the proxied command
+  sender. This duplicates the message, not the cleanup. Run `/clean items`, `/clean entities` or `/clean all`
+  directly as the player, or run the command from the direct server console instead.
+- **通过 `/execute` 转发的命令：** 玩家执行 `/execute as <实体> run clean …` 时，可能收到两次完成消息：一次来自在线玩家广播，
+  另一次来自转发命令的发送者。重复的是消息，不是清理。请让玩家直接执行 `/clean items`、`/clean entities` 或 `/clean all`，
+  或改用服务器直接控制台执行。
+
 ## 🐛 问题反馈
 
 如遇到问题，请在 [GitHub Issues](https://github.com/UltiKits/UltiTools-Reborn/issues) 提交，并附上：
@@ -217,4 +235,4 @@ tps:
 
 ## 📄 许可证
 
-本项目基于 MIT 许可证开源。
+本项目基于 [MIT License](LICENSE) 开源。

@@ -13,6 +13,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Item;
@@ -303,6 +304,11 @@ public class CleanerService {
      *                nothing to clean; otherwise the count, after the batch's last tick
      */
     private void cleanItemsWithBatch(PreItemCleanEvent.CleanTrigger trigger, IntConsumer done) {
+        cleanItemsWithBatch(trigger, done, null);
+    }
+
+    private void cleanItemsWithBatch(PreItemCleanEvent.CleanTrigger trigger, IntConsumer done,
+                                     CommandSender sender) {
         if (itemCleaningInProgress) {
             done.accept(0);
             return;
@@ -316,7 +322,7 @@ public class CleanerService {
         Bukkit.getPluginManager().callEvent(preEvent);
         
         if (preEvent.isCancelled()) {
-            broadcastMessage(cleanCancelledText());
+            broadcastCompletion(cleanCancelledText(), sender);
             done.accept(0);
             return;
         }
@@ -325,7 +331,7 @@ public class CleanerService {
         List<UUID> finalItems = preEvent.getItemUuids();
         
         if (finalItems.isEmpty()) {
-            broadcastItemCleaned(0);
+            broadcastItemCleaned(0, sender);
             done.accept(0);
             return;
         }
@@ -335,7 +341,7 @@ public class CleanerService {
         removeEntitiesInBatches(finalItems, config.getCleanBatchSize(), count -> {
             itemCleaningInProgress = false;
             long duration = System.currentTimeMillis() - startTime;
-            broadcastItemCleaned(count);
+            broadcastItemCleaned(count, sender);
             // done runs after the ITEMS event has been dispatched, so an ALL event it completes follows it
             fireCompleteEvent(CleanCompleteEvent.CleanType.ITEMS, count, duration, convertTrigger(trigger),
                     () -> done.accept(count));
@@ -358,6 +364,11 @@ public class CleanerService {
      *                there was nothing to clean; otherwise the count, after the batch's last tick
      */
     private void cleanEntitiesWithBatch(PreEntityCleanEvent.CleanTrigger trigger, IntConsumer done) {
+        cleanEntitiesWithBatch(trigger, done, null);
+    }
+
+    private void cleanEntitiesWithBatch(PreEntityCleanEvent.CleanTrigger trigger, IntConsumer done,
+                                        CommandSender sender) {
         if (entityCleaningInProgress) {
             done.accept(0);
             return;
@@ -372,7 +383,7 @@ public class CleanerService {
         Bukkit.getPluginManager().callEvent(preEvent);
         
         if (preEvent.isCancelled()) {
-            broadcastMessage(cleanCancelledText());
+            broadcastCompletion(cleanCancelledText(), sender);
             done.accept(0);
             return;
         }
@@ -390,7 +401,7 @@ public class CleanerService {
         removeEntitiesInBatches(finalEntities, config.getCleanBatchSize(), count -> {
             entityCleaningInProgress = false;
             long duration = System.currentTimeMillis() - startTime;
-            broadcastEntityCleaned(count);
+            broadcastEntityCleaned(count, sender);
             // done runs after the ENTITIES event has been dispatched, so an ALL event it completes follows it
             fireCompleteEvent(CleanCompleteEvent.CleanType.ENTITIES, count, duration, convertTrigger(trigger),
                     () -> done.accept(count));
@@ -658,18 +669,26 @@ public class CleanerService {
     /**
      * Broadcast item cleaned message.
      */
-    private void broadcastItemCleaned(int count) {
+    private void broadcastItemCleaned(int count, CommandSender sender) {
         String message = itemCleanedText().replace("{COUNT}", String.valueOf(count));
-        broadcastMessage(message);
+        broadcastCompletion(message, sender);
     }
     
     /**
      * Broadcast entity cleaned message.
      */
-    private void broadcastEntityCleaned(int count) {
+    private void broadcastEntityCleaned(int count, CommandSender sender) {
         if (count > 0) {
             String message = entityCleanedText().replace("{COUNT}", String.valueOf(count));
-            broadcastMessage(message);
+            broadcastCompletion(message, sender);
+        }
+    }
+
+    /** Keep the player broadcast, and reply to a command sender it does not reach (such as console). */
+    private void broadcastCompletion(String message, CommandSender sender) {
+        broadcastMessage(message);
+        if (sender != null && !(sender instanceof Player)) {
+            sender.sendMessage(ChatColor.translateAlternateColorCodes('&', message));
         }
     }
     
@@ -693,8 +712,13 @@ public class CleanerService {
      * @return number of items collected for cleaning (actual removal is async)
      */
     public int forceCleanItems() {
+        return forceCleanItems(null);
+    }
+
+    /** As {@link #forceCleanItems()}, also replying to a sender outside the player broadcast. */
+    public int forceCleanItems(CommandSender sender) {
         List<UUID> items = collectItemsToClean();
-        cleanItemsWithBatch(PreItemCleanEvent.CleanTrigger.MANUAL);
+        cleanItemsWithBatch(PreItemCleanEvent.CleanTrigger.MANUAL, count -> { }, sender);
         itemCountdown = config.getItemCleanInterval();
         return items.size();
     }
@@ -705,9 +729,14 @@ public class CleanerService {
      * @return number of entities collected for cleaning (actual removal is async)
      */
     public int forceCleanEntities() {
+        return forceCleanEntities(null);
+    }
+
+    /** As {@link #forceCleanEntities()}, also replying to a sender outside the player broadcast. */
+    public int forceCleanEntities(CommandSender sender) {
         Map<EntityType, Integer> typeCounts = new HashMap<>();
         List<UUID> entities = collectEntitiesToClean(typeCounts);
-        cleanEntitiesWithBatch(PreEntityCleanEvent.CleanTrigger.MANUAL);
+        cleanEntitiesWithBatch(PreEntityCleanEvent.CleanTrigger.MANUAL, count -> { }, sender);
         entityCountdown = config.getEntityCleanInterval();
         return entities.size();
     }
@@ -725,6 +754,11 @@ public class CleanerService {
      *         (actual removal is batched over the following ticks)
      */
     public int[] forceCleanAll() {
+        return forceCleanAll(null);
+    }
+
+    /** As {@link #forceCleanAll()}, replying to the sender as each component cleanup completes. */
+    public int[] forceCleanAll(CommandSender sender) {
         long startTime = System.currentTimeMillis();
         int itemCount = collectItemsToClean().size();
         int entityCount = collectEntitiesToClean(new HashMap<>()).size();
@@ -737,8 +771,8 @@ public class CleanerService {
                 fireAllEvent(removed.get(), System.currentTimeMillis() - startTime);
             }
         };
-        cleanItemsWithBatch(PreItemCleanEvent.CleanTrigger.MANUAL, halfDone);
-        cleanEntitiesWithBatch(PreEntityCleanEvent.CleanTrigger.MANUAL, halfDone);
+        cleanItemsWithBatch(PreItemCleanEvent.CleanTrigger.MANUAL, halfDone, sender);
+        cleanEntitiesWithBatch(PreEntityCleanEvent.CleanTrigger.MANUAL, halfDone, sender);
 
         itemCountdown = config.getItemCleanInterval();
         entityCountdown = config.getEntityCleanInterval();
