@@ -136,6 +136,9 @@ public class CleanerService {
                     plugin.getLogger().warn(plugin.i18n("log_unknown_entity_type").replace("{TYPE}", type));
                 }
             }
+            if (!config.getEntityTypes().isEmpty() && entityTypesCache.isEmpty()) {
+                plugin.getLogger().warn(plugin.i18n("log_no_known_entity_types"));
+            }
         }
         
         // World blacklist

@@ -274,7 +274,8 @@ class CleanerTextLanguageTest {
             service.init();
 
             assertThat(logged(logger, "warn")).containsExactly(
-                    line("zh", "log_unknown_entity_type", "{TYPE}", "NOT_A_TYPE"));
+                    line("zh", "log_unknown_entity_type", "{TYPE}", "NOT_A_TYPE"),
+                    line("zh", "log_no_known_entity_types"));
         }
     }
 }

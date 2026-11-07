@@ -11,6 +11,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Answers;
 import org.mockito.Mockito;
@@ -193,12 +195,20 @@ class CleanerEmptyListsFromFileTest {
         CleanerService service = start(config);
 
         assertThat(eligibleTypes(service)).containsExactly(EntityType.ZOMBIE);
+        assertThat(moduleWarnings()).isEmpty();
     }
 
-    @Test
-    @DisplayName("a list holding only names that are no entity type is not empty: the module warns once per name and cleans no entity (documented limitation)")
-    void aListOfOnlyUnknownTypesCleansNothingAndNamesEachEntry() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"en", "zh"})
+    @DisplayName("only unknown types: preserve per-name warnings and add one localized summary at enable and reload (#37)")
+    void aListOfOnlyUnknownTypesCleansNothingAndNamesEachEntry(String language) throws Exception {
+        Mockito.when(UltiCleanerTestHelper.getMockPlugin().i18n(Mockito.anyString()))
+                .thenAnswer(CatalogueText.answer(language));
         CleanerConfig config = load("entity:\n  types: [FOO, BAR]\n");
+        byte[] before = Files.readAllBytes(file().toPath());
+        String summary = "en".equals(language)
+                ? "entity.types in config/cleaner.yml names no known entity type; scheduled and manual entity cleanup remove nothing."
+                : "config/cleaner.yml 中的 entity.types 未指定任何已知实体类型；定时和手动实体清理均不会移除任何实体。";
 
         assertThat(config.getEntityTypes()).as("the framework cannot tell a type name from any other text").containsExactly("FOO", "BAR");
         assertThat(frameworkWarnings).noneMatch(w -> w.contains("entity.types"));
@@ -206,7 +216,53 @@ class CleanerEmptyListsFromFileTest {
         CleanerService service = start(config);
 
         assertThat(eligibleTypes(service)).isEmpty();
-        assertThat(moduleWarnings()).filteredOn(w -> w.contains("FOO") || w.contains("BAR")).hasSize(2);
+        List<String> firstLoadWarnings = moduleWarnings();
+        assertThat(firstLoadWarnings).filteredOn(w -> w.contains("FOO") || w.contains("BAR")).hasSize(2);
+        assertThat(firstLoadWarnings).filteredOn(w -> w.contains("entity.types")).containsExactly(summary);
+        assertThat(firstLoadWarnings).hasSize(3);
+
+        service.reload();
+
+        assertThat(eligibleTypes(service)).isEmpty();
+        List<String> bothLoadsWarnings = moduleWarnings();
+        assertThat(bothLoadsWarnings).filteredOn(w -> w.contains("entity.types")).containsExactly(summary, summary);
+        assertThat(bothLoadsWarnings).hasSize(6);
+        assertThat(Files.readAllBytes(file().toPath())).as("cache loading never rewrites the operator's config").isEqualTo(before);
+
+        config.setEntityTypes(Collections.singletonList("ZOMBIE"));
+        service.reload();
+        assertThat(eligibleTypes(service)).containsExactly(EntityType.ZOMBIE);
+        assertThat(moduleWarnings()).hasSize(6);
+    }
+
+    @Test
+    @DisplayName("a mixed list retains its known types and only warns about its unknown entry")
+    void aMixedEntityTypesListDoesNotWarnThatCleanupRemovesNothing() throws Exception {
+        CleanerConfig config = load("entity:\n  types: [ZOMBIE, FOO]\n");
+        byte[] before = Files.readAllBytes(file().toPath());
+
+        CleanerService service = start(config);
+        service.reload();
+
+        assertThat(eligibleTypes(service)).containsExactly(EntityType.ZOMBIE);
+        assertThat(moduleWarnings()).hasSize(2).allMatch(w -> w.contains("FOO"));
+        assertThat(Files.readAllBytes(file().toPath())).isEqualTo(before);
+    }
+
+    @Test
+    @DisplayName("raw empty and null lists do not receive the non-empty unknown-list summary")
+    void rawEmptyAndNullListsDoNotReceiveTheSummary() throws Exception {
+        CleanerConfig config = load("entity:\n  types: [ZOMBIE]\n");
+        config.setEntityTypes(Collections.<String>emptyList());
+
+        CleanerService service = start(config);
+        assertThat(eligibleTypes(service)).isEmpty();
+        assertThat(moduleWarnings()).isEmpty();
+
+        config.setEntityTypes(null);
+        service.reload();
+        assertThat(eligibleTypes(service)).isEmpty();
+        assertThat(moduleWarnings()).isEmpty();
     }
 
     @Test
