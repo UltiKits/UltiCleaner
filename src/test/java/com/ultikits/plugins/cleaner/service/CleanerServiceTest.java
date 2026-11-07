@@ -1594,9 +1594,9 @@ class CleanerServiceTest {
 
             initServiceWithEmptyConfig();
 
-            Method method = CleanerService.class.getDeclaredMethod("broadcastItemCleaned", int.class);
+            Method method = CleanerService.class.getDeclaredMethod("broadcastItemCleaned", int.class, CommandSender.class);
             method.setAccessible(true);
-            method.invoke(service, 42);
+            method.invoke(service, 42, null);
 
             verify(player).sendMessage(anyString());
         }
@@ -1610,9 +1610,9 @@ class CleanerServiceTest {
 
             initServiceWithEmptyConfig();
 
-            Method method = CleanerService.class.getDeclaredMethod("broadcastEntityCleaned", int.class);
+            Method method = CleanerService.class.getDeclaredMethod("broadcastEntityCleaned", int.class, CommandSender.class);
             method.setAccessible(true);
-            method.invoke(service, 10);
+            method.invoke(service, 10, null);
 
             verify(player).sendMessage(anyString());
         }
@@ -1626,9 +1626,9 @@ class CleanerServiceTest {
 
             initServiceWithEmptyConfig();
 
-            Method method = CleanerService.class.getDeclaredMethod("broadcastEntityCleaned", int.class);
+            Method method = CleanerService.class.getDeclaredMethod("broadcastEntityCleaned", int.class, CommandSender.class);
             method.setAccessible(true);
-            method.invoke(service, 0);
+            method.invoke(service, 0, null);
 
             verify(player, never()).sendMessage(anyString());
         }

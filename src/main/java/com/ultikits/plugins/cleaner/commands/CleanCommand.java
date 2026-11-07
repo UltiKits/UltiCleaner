@@ -49,7 +49,7 @@ public class CleanCommand extends BaseCommandExecutor {
             sender.sendMessage(color(plugin.i18n("clean_in_progress")));
             return;
         }
-        int count = cleanerService.forceCleanItems();
+        int count = cleanerService.forceCleanItems(sender);
         sender.sendMessage(color(plugin.i18n("clean_started_items").replace("{COUNT}", String.valueOf(count))));
     }
     
@@ -59,7 +59,7 @@ public class CleanCommand extends BaseCommandExecutor {
             sender.sendMessage(color(plugin.i18n("clean_in_progress")));
             return;
         }
-        int count = cleanerService.forceCleanEntities();
+        int count = cleanerService.forceCleanEntities(sender);
         sender.sendMessage(color(plugin.i18n("clean_started_entities").replace("{COUNT}", String.valueOf(count))));
     }
     
@@ -69,7 +69,7 @@ public class CleanCommand extends BaseCommandExecutor {
             sender.sendMessage(color(plugin.i18n("clean_in_progress")));
             return;
         }
-        int[] counts = cleanerService.forceCleanAll();
+        int[] counts = cleanerService.forceCleanAll(sender);
         sender.sendMessage(color(plugin.i18n("clean_started_all")
                 .replace("{ITEMS}", String.valueOf(counts[0]))
                 .replace("{ENTITIES}", String.valueOf(counts[1]))));

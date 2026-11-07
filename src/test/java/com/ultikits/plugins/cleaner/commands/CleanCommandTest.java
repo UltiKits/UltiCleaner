@@ -58,11 +58,11 @@ class CleanCommandTest {
         @DisplayName("Should clean items when not in progress")
         void cleanItems() {
             when(cleanerService.isCleaningInProgress()).thenReturn(false);
-            when(cleanerService.forceCleanItems()).thenReturn(100);
+            when(cleanerService.forceCleanItems(sender)).thenReturn(100);
 
             command.cleanItems(sender);
 
-            verify(cleanerService).forceCleanItems();
+            verify(cleanerService).forceCleanItems(sender);
             verify(sender).sendMessage(anyString());
         }
 
@@ -73,7 +73,7 @@ class CleanCommandTest {
 
             command.cleanItems(sender);
 
-            verify(cleanerService, never()).forceCleanItems();
+            verify(cleanerService, never()).forceCleanItems(sender);
             verify(sender).sendMessage(anyString());
         }
     }
@@ -88,11 +88,11 @@ class CleanCommandTest {
         @DisplayName("Should clean entities when not in progress")
         void cleanEntities() {
             when(cleanerService.isCleaningInProgress()).thenReturn(false);
-            when(cleanerService.forceCleanEntities()).thenReturn(50);
+            when(cleanerService.forceCleanEntities(sender)).thenReturn(50);
 
             command.cleanEntities(sender);
 
-            verify(cleanerService).forceCleanEntities();
+            verify(cleanerService).forceCleanEntities(sender);
             verify(sender).sendMessage(anyString());
         }
 
@@ -103,7 +103,7 @@ class CleanCommandTest {
 
             command.cleanEntities(sender);
 
-            verify(cleanerService, never()).forceCleanEntities();
+            verify(cleanerService, never()).forceCleanEntities(sender);
             verify(sender).sendMessage(anyString());
         }
     }
@@ -114,23 +114,17 @@ class CleanCommandTest {
     @DisplayName("cleanAll")
     class CleanAll {
 
-        // forceCleanAll() is reached reflectively so this class compiles against the service
-        // before it existed; without it these tests error (UltiKits/UltiCleaner#16).
-        private java.lang.reflect.Method forceCleanAll() throws Exception {
-            return CleanerService.class.getMethod("forceCleanAll");
-        }
-
         @Test
         @DisplayName("Should clean both items and entities through one combined run, reporting both counts (UltiKits/UltiCleaner#16)")
         void cleanAll() throws Exception {
             when(cleanerService.isCleaningInProgress()).thenReturn(false);
-            when(forceCleanAll().invoke(cleanerService)).thenReturn(new int[] {100, 50});
+            when(cleanerService.forceCleanAll(sender)).thenReturn(new int[] {100, 50});
 
             command.cleanAll(sender);
 
-            forceCleanAll().invoke(verify(cleanerService));
-            verify(cleanerService, never()).forceCleanItems();
-            verify(cleanerService, never()).forceCleanEntities();
+            verify(cleanerService).forceCleanAll(sender);
+            verify(cleanerService, never()).forceCleanItems(sender);
+            verify(cleanerService, never()).forceCleanEntities(sender);
             org.mockito.ArgumentCaptor<String> line = org.mockito.ArgumentCaptor.forClass(String.class);
             verify(sender).sendMessage(line.capture());
             assertThat(line.getValue()).contains("100").contains("50");
@@ -143,9 +137,9 @@ class CleanCommandTest {
 
             command.cleanAll(sender);
 
-            forceCleanAll().invoke(verify(cleanerService, never()));
-            verify(cleanerService, never()).forceCleanItems();
-            verify(cleanerService, never()).forceCleanEntities();
+            verify(cleanerService, never()).forceCleanAll(sender);
+            verify(cleanerService, never()).forceCleanItems(sender);
+            verify(cleanerService, never()).forceCleanEntities(sender);
         }
     }
 

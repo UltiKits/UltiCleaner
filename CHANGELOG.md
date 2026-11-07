@@ -5,6 +5,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 本文件记录本项目的所有重要更改，格式基于 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)。
 
+## [Unreleased]
+
+### Fixed
+
+- Direct server console commands `clean items`, `clean entities` and `clean all` now receive each
+  applicable completion or cancellation message as well as the start line. Empty item cleanup replies
+  with a count of 0; entity cleanup still sends no completion when nothing was removed. Player
+  broadcasts are preserved without an extra direct reply to a player sender (UltiKits/UltiCleaner#52).
+- 在服务器直接控制台执行 `clean items`、`clean entities` 或 `clean all` 时，现在除了开始提示，还会收到对应的
+  完成或取消消息。没有物品可清理时回复数量 0；没有移除实体时仍不发实体完成消息。在线玩家广播保持不变，
+  不会向玩家命令发送者额外再回复一次（UltiKits/UltiCleaner#52）。
+
 ## [2.0.0] - 2026-10-21
 
 ### Added
